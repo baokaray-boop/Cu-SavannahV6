@@ -105,7 +105,7 @@ task.spawn(function()
     StatusLabel.Text = "Xác điện cấu hình phone"
     task.wait(3)
     
-    StatusLabel.Text = "Cu hub đã cho phép bạn trong 1 ngày"
+    StatusLabel.Text = "Cu hub đã cho phép bạn"
     task.wait(3)
     
     rainbowRunning = false
