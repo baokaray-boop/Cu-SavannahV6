@@ -1,0 +1,117 @@
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+if CoreGui:FindFirstChild("CuHubTurboKeySystem") then
+    CoreGui.CuHubTurboKeySystem:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "CuHubTurboKeySystem"
+ScreenGui.Parent = CoreGui
+ScreenGui.DisplayOrder = 99999
+ScreenGui.ResetOnSpawn = false
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 350, 0, 200)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -100)
+MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+MainFrame.BackgroundTransparency = 1
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Thickness = 3
+UIStroke.Transparency = 1
+UIStroke.Parent = MainFrame
+
+local rainbowRunning = true
+task.spawn(function()
+    while rainbowRunning and ScreenGui.Parent and task.wait() do
+        for i = 0, 1, 0.005 do
+            if not rainbowRunning or not ScreenGui.Parent then break end
+            UIStroke.Color = Color3.fromHSV(i, 1, 1)
+            task.wait(0.02)
+        end
+    end
+end)
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Position = UDim2.new(0, 0, 0, 10)
+Title.BackgroundTransparency = 1
+Title.Text = "Cu hub, turbo savannah life"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextTransparency = 1
+Title.TextSize = 16
+Title.Font = Enum.Font.FredokaOne
+Title.Parent = MainFrame
+
+local AvatarImage = Instance.new("ImageLabel")
+AvatarImage.Size = UDim2.new(0, 50, 0, 50)
+AvatarImage.Position = UDim2.new(0.5, -25, 0, 45)
+AvatarImage.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+AvatarImage.ImageTransparency = 1
+pcall(function()
+    AvatarImage.Image = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+end)
+AvatarImage.Parent = MainFrame
+
+local AvatarCorner = Instance.new("UICorner")
+AvatarCorner.CornerRadius = UDim.new(1, 0)
+AvatarCorner.Parent = AvatarImage
+
+local NameLabel = Instance.new("TextLabel")
+NameLabel.Size = UDim2.new(1, 0, 0, 20)
+NameLabel.Position = UDim2.new(0, 0, 0, 100)
+NameLabel.BackgroundTransparency = 1
+NameLabel.Text = LocalPlayer.DisplayName .. " (@" .. LocalPlayer.Name .. ")"
+NameLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+NameLabel.TextTransparency = 1
+NameLabel.TextSize = 12
+NameLabel.Font = Enum.Font.SourceSansBold
+NameLabel.Parent = MainFrame
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(0, 320, 0, 35)
+StatusLabel.Position = UDim2.new(0.5, -160, 0, 135)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = ""
+StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+StatusLabel.TextTransparency = 1
+StatusLabel.TextSize = 22 -- Tăng kích thước chữ to hơn nữa
+StatusLabel.Font = Enum.Font.SourceSansBold
+StatusLabel.Parent = MainFrame
+
+local tweenInfo = TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+TweenService:Create(MainFrame, tweenInfo, {BackgroundTransparency = 0}):Play()
+TweenService:Create(UIStroke, tweenInfo, {Transparency = 0}):Play()
+TweenService:Create(Title, tweenInfo, {TextTransparency = 0}):Play()
+TweenService:Create(AvatarImage, tweenInfo, {ImageTransparency = 0}):Play()
+TweenService:Create(NameLabel, tweenInfo, {TextTransparency = 0}):Play()
+TweenService:Create(StatusLabel, tweenInfo, {TextTransparency = 0}):Play()
+
+task.spawn(function()
+    task.wait(2)
+    
+    StatusLabel.Text = "Đang xác minh quyền cho phép"
+    task.wait(3)
+    
+    StatusLabel.Text = "Xác điện cấu hình phone"
+    task.wait(3)
+    
+    StatusLabel.Text = "Cu hub đã cho phép bạn trong 1 ngày"
+    task.wait(3)
+    
+    rainbowRunning = false
+    pcall(function()
+        ScreenGui:Destroy()
+    end)
+    
+    loadstring(game:HttpGet("https://secure-lua-paste.lovable.app/raw/savanav6"))()
+end)
