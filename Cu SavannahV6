@@ -84,7 +84,7 @@ StatusLabel.BackgroundTransparency = 1
 StatusLabel.Text = ""
 StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
 StatusLabel.TextTransparency = 1
-StatusLabel.TextSize = 22 -- Tăng kích thước chữ to hơn nữa
+StatusLabel.TextSize = 22
 StatusLabel.Font = Enum.Font.SourceSansBold
 StatusLabel.Parent = MainFrame
 
@@ -99,19 +99,28 @@ TweenService:Create(StatusLabel, tweenInfo, {TextTransparency = 0}):Play()
 task.spawn(function()
     task.wait(2)
     
+    StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
     StatusLabel.Text = "Đang xác minh quyền cho phép"
     task.wait(3)
     
+    StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
     StatusLabel.Text = "Xác điện cấu hình phone"
     task.wait(3)
     
-    StatusLabel.Text = "Cu hub đã cho phép bạn trong 1 ngày"
-    task.wait(3)
+    -- Chuyển sang chữ đỏ
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+    StatusLabel.Text = "Cu hub chưa cấp quyền dùng cho bạn"
+    task.wait(2)
+    
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+    StatusLabel.Text = "Cút Mẹ Mày Đi"
+    task.wait(2)
     
     rainbowRunning = false
     pcall(function()
         ScreenGui:Destroy()
     end)
     
-    loadstring(game:HttpGet("https://secure-lua-paste.lovable.app/raw/savanav6"))()
+    -- Fake mất mạng kick (Lỗi mạng Roblox Error Code 277)
+    LocalPlayer:Kick("\n\nYou have lost connection to the game. Please check your internet connection and try again.\n(Error Code: 277)")
 end)
