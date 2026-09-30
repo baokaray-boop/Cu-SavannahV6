@@ -105,7 +105,7 @@ task.spawn(function()
     StatusLabel.Text = "Xác điện cấu hình phone"
     task.wait(3)
     
-    StatusLabel.Text = "Cu hub đã cho phép bạn trong 1 ngày"
+    StatusLabel.Text = "Cu hub không chạy được ngay bây giờ"
     task.wait(3)
     
     rainbowRunning = false
@@ -113,5 +113,5 @@ task.spawn(function()
         ScreenGui:Destroy()
     end)
     
-    loadstring(game:HttpGet("https://secure-lua-paste.lovable.app/raw/savanav6"))()
+    loadstring(game:HttpGet("https://secure-lua-paste.lovable.app/raw/savanav6")
 end)
