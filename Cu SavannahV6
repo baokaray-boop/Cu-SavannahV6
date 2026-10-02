@@ -1,117 +1,532 @@
-local CoreGui = game:GetService("CoreGui")
+-- Cu hub 2.0 - FULL HOÀN CHỈNH
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
-if CoreGui:FindFirstChild("CuHubTurboKeySystem") then
-    CoreGui.CuHubTurboKeySystem:Destroy()
+local trangThai = {
+    voHanNangLuong = false,
+    voHanOxygen = false,
+    killAura = false,
+    tangToc = false,
+    bayChayHo = false,
+    tocDo = 30,
+    tocDoGoc = 16,
+    khoaNutMo = false,
+    khoaNutThao = false,
+}
+
+-- TÌM REMOTE
+local remoteAttack = nil
+local remoteLatch = nil
+for _, v in ipairs(ReplicatedStorage:GetDescendants()) do
+    if v:IsA("RemoteEvent") then
+        if v.Name == "AttackHandlerRemoteEvent" then
+            remoteAttack = v
+        elseif v.Name == "LatchedPlayersNotifyRemoteEvent" then
+            remoteLatch = v
+        end
+    end
 end
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "CuHubTurboKeySystem"
-ScreenGui.Parent = CoreGui
-ScreenGui.DisplayOrder = 99999
-ScreenGui.ResetOnSpawn = false
+-- KILL AURA
+local function killAuraLoop()
+    while trangThai.killAura do
+        pcall(function()
+            local nv = LocalPlayer.Character
+            local goc = nv and nv:FindFirstChild("HumanoidRootPart")
+            if goc and remoteAttack and remoteAttack.Parent then
+                local gan = nil
+                local kcMin = 35
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Character then
+                        local mt = p.Character:FindFirstChild("HumanoidRootPart")
+                        local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                        if mt and hum and hum.Health > 0 then
+                            local kc = (goc.Position - mt.Position).Magnitude
+                            if kc <= kcMin then
+                                kcMin = kc
+                                gan = p
+                            end
+                        end
+                    end
+                end
+                if gan then
+                    local humTarget = gan.Character:FindFirstChildOfClass("Humanoid")
+                    if humTarget then remoteAttack:FireServer(humTarget) end
+                end
+            end
+        end)
+        task.wait(0.2)
+    end
+end
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 350, 0, 200)
-MainFrame.Position = UDim2.new(0.5, -175, 0.5, -100)
-MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-MainFrame.BackgroundTransparency = 1
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
+-- BAY CHẠY HỘ
+local attBay = nil
+local apBay = nil
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 10)
-UICorner.Parent = MainFrame
+local function batBay()
+    local nv = LocalPlayer.Character
+    local goc = nv and nv:FindFirstChild("HumanoidRootPart")
+    local hum = nv and nv:FindFirstChildOfClass("Humanoid")
+    if not goc or not hum then return end
+    hum.PlatformStand = true
+    if attBay then pcall(function() attBay:Destroy() end) end
+    if apBay then pcall(function() apBay:Destroy() end) end
+    attBay = Instance.new("Attachment")
+    attBay.Name = "BayAttach"
+    attBay.Parent = goc
+    apBay = Instance.new("AlignPosition")
+    apBay.Mode = Enum.PositionAlignmentMode.OneAttachment
+    apBay.Attachment0 = attBay
+    apBay.MaxForce = 1e6
+    apBay.Responsiveness = 60
+    apBay.Position = goc.Position
+    apBay.Parent = goc
+end
 
-local UIStroke = Instance.new("UIStroke")
-UIStroke.Thickness = 3
-UIStroke.Transparency = 1
-UIStroke.Parent = MainFrame
+local function tatBay()
+    pcall(function()
+        local nv = LocalPlayer.Character
+        if nv then
+            local hum = nv:FindFirstChildOfClass("Humanoid")
+            if hum then hum.PlatformStand = false end
+        end
+    end)
+    if apBay then pcall(function() apBay:Destroy() end) apBay = nil end
+    if attBay then pcall(function() attBay:Destroy() end) attBay = nil end
+end
 
-local rainbowRunning = true
-task.spawn(function()
-    while rainbowRunning and ScreenGui.Parent and task.wait() do
-        for i = 0, 1, 0.005 do
-            if not rainbowRunning or not ScreenGui.Parent then break end
-            UIStroke.Color = Color3.fromHSV(i, 1, 1)
-            task.wait(0.02)
+local function bayChayHoLoop()
+    batBay()
+    local daLen20 = false
+
+    while trangThai.bayChayHo do
+        pcall(function()
+            local nv = LocalPlayer.Character
+            local goc = nv and nv:FindFirstChild("HumanoidRootPart")
+            local hum = nv and nv:FindFirstChildOfClass("Humanoid")
+            if not goc or not hum then return end
+            if not apBay or not apBay.Parent then batBay() end
+            if not apBay then return end
+
+            hum.PlatformStand = true
+
+            local viTriGan = nil
+            local humGan = nil
+            local kcMin = 999
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and p.Character then
+                    local mt = p.Character:FindFirstChild("HumanoidRootPart")
+                    local h = p.Character:FindFirstChildOfClass("Humanoid")
+                    if mt and h and h.Health > 0 then
+                        local kc = (goc.Position - mt.Position).Magnitude
+                        if kc < kcMin then
+                            kcMin = kc
+                            viTriGan = mt
+                            humGan = h
+                        end
+                    end
+                end
+            end
+
+            if viTriGan and humGan then
+                local doCaoHienTai = goc.Position.Y - viTriGan.Position.Y
+
+                if not daLen20 then
+                    apBay.Position = Vector3.new(
+                        viTriGan.Position.X,
+                        viTriGan.Position.Y + 20,
+                        viTriGan.Position.Z
+                    )
+                    apBay.Responsiveness = 60
+                    if doCaoHienTai >= 19 then
+                        daLen20 = true
+                    end
+                else
+                    apBay.Position = Vector3.new(
+                        viTriGan.Position.X,
+                        viTriGan.Position.Y + 20,
+                        viTriGan.Position.Z
+                    )
+                    local tocDoMT = humGan.WalkSpeed
+                    if tocDoMT < 30 then tocDoMT = 30 end
+                    apBay.Responsiveness = math.clamp(tocDoMT * 4, 80, 400)
+                end
+            end
+        end)
+        task.wait(0.05)
+    end
+    tatBay()
+end
+
+-- GỬI REMOTE GỠ GRAB
+local function guiRemoteLatch()
+    if not remoteLatch or not remoteLatch.Parent then return end
+    local nv = LocalPlayer.Character
+    local hum = nv and nv:FindFirstChildOfClass("Humanoid")
+    pcall(function() remoteLatch:FireServer() end)
+    pcall(function() remoteLatch:FireServer(LocalPlayer) end)
+    pcall(function() remoteLatch:FireServer(nv) end)
+    pcall(function() remoteLatch:FireServer(hum) end)
+end
+
+-- VIỀN CẦU VỒNG
+local function taoVien(parent, doDay)
+    local vien = Instance.new("UIStroke")
+    vien.Thickness = doDay or 2
+    vien.Color = Color3.fromRGB(255, 0, 0)
+    vien.Parent = parent
+    local grad = Instance.new("UIGradient")
+    grad.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(255, 0, 0)),
+        ColorSequenceKeypoint.new(0.17, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+        ColorSequenceKeypoint.new(0.67, Color3.fromRGB(0, 0, 255)),
+        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(255, 0, 0)),
+    }
+    grad.Parent = vien
+    task.spawn(function()
+        while vien.Parent do
+            for i = 0, 360, 5 do
+                if not vien.Parent then break end
+                grad.Rotation = i
+                task.wait(0.03)
+            end
+        end
+    end)
+end
+
+-- HÀM KÉO
+local function keoDuoc(frame, getKhoa)
+    local keo = false
+    local bdX, bdY = 0, 0
+    local khX, khY = 0, 0
+    frame.InputBegan:Connect(function(input)
+        if getKhoa and getKhoa() then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            keo = true
+            bdX = input.Position.X
+            bdY = input.Position.Y
+            khX = frame.Position.X.Offset
+            khY = frame.Position.Y.Offset
+        end
+    end)
+    frame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            keo = false
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if not keo then return end
+        if getKhoa and getKhoa() then return end
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+            local dx = input.Position.X - bdX
+            local dy = input.Position.Y - bdY
+            frame.Position = UDim2.new(0, khX + dx, 0, khY + dy)
+        end
+    end)
+end
+
+-- GUI
+local pg = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 10)
+local sg = Instance.new("ScreenGui")
+sg.Name = "CuHub2"
+sg.ResetOnSpawn = false
+sg.IgnoreGuiInset = true
+sg.Parent = pg
+
+local nutMo = Instance.new("TextButton")
+nutMo.Size = UDim2.new(0, 90, 0, 40)
+nutMo.Position = UDim2.new(0, 20, 0, 200)
+nutMo.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+nutMo.BackgroundTransparency = 0.15
+nutMo.TextColor3 = Color3.fromRGB(255, 255, 255)
+nutMo.Text = "Cu hub 2.0"
+nutMo.Font = Enum.Font.GothamBold
+nutMo.TextSize = 13
+nutMo.Active = true
+nutMo.Parent = sg
+Instance.new("UICorner", nutMo).CornerRadius = UDim.new(0, 8)
+taoVien(nutMo, 2)
+keoDuoc(nutMo, function() return trangThai.khoaNutMo end)
+
+local nutThao = Instance.new("TextButton")
+nutThao.Size = UDim2.new(0, 80, 0, 80)
+nutThao.Position = UDim2.new(0, 20, 0, 250)
+nutThao.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+nutThao.BackgroundTransparency = 0.15
+nutThao.Text = ""
+nutThao.Active = true
+nutThao.Visible = false
+nutThao.Parent = sg
+Instance.new("UICorner", nutThao).CornerRadius = UDim.new(0, 10)
+taoVien(nutThao, 3)
+keoDuoc(nutThao, function() return trangThai.khoaNutThao end)
+
+local khung = Instance.new("Frame")
+khung.Size = UDim2.new(0, 204, 0, 258)
+khung.Position = UDim2.new(0.5, -102, 0.5, -129)
+khung.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+khung.BackgroundTransparency = 0.15
+khung.Visible = false
+khung.Active = true
+khung.Parent = sg
+Instance.new("UICorner", khung).CornerRadius = UDim.new(0, 10)
+taoVien(khung, 2)
+
+local function taoNut(pos, size, ten, callback)
+    local nut = Instance.new("TextButton")
+    nut.Size = size or UDim2.new(0, 88, 0, 55)
+    nut.Position = pos
+    nut.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    nut.TextColor3 = Color3.fromRGB(255, 50, 50)
+    nut.Text = ten
+    nut.Font = Enum.Font.GothamBold
+    nut.TextSize = 11
+    nut.TextWrapped = true
+    nut.Parent = khung
+    Instance.new("UICorner", nut).CornerRadius = UDim.new(0, 8)
+    nut.MouseButton1Click:Connect(function() callback(nut) end)
+    return nut
+end
+
+local function doi(nut, bat)
+    if bat then
+        nut.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        nut.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        nut.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        nut.TextColor3 = Color3.fromRGB(255, 50, 50)
+    end
+end
+
+taoNut(UDim2.new(0, 10, 0, 10), UDim2.new(0, 88, 0, 55), "Vô hạn\nnăng lượng", function(nut)
+    trangThai.voHanNangLuong = not trangThai.voHanNangLuong
+    doi(nut, trangThai.voHanNangLuong)
+end)
+
+taoNut(UDim2.new(0, 106, 0, 10), UDim2.new(0, 88, 0, 55), "Vô hạn\nOxygen", function(nut)
+    trangThai.voHanOxygen = not trangThai.voHanOxygen
+    doi(nut, trangThai.voHanOxygen)
+end)
+
+taoNut(UDim2.new(0, 10, 0, 75), UDim2.new(0, 88, 0, 55), "Anti Grab", function(nut)
+    local bat = not nut:GetAttribute("bat")
+    nut:SetAttribute("bat", bat)
+    doi(nut, bat)
+    nutThao.Visible = bat
+end)
+
+taoNut(UDim2.new(0, 106, 0, 75), UDim2.new(0, 88, 0, 55), "Kill\nAura", function(nut)
+    trangThai.killAura = not trangThai.killAura
+    doi(nut, trangThai.killAura)
+    if trangThai.killAura then task.spawn(killAuraLoop) end
+end)
+
+local nutToc = Instance.new("TextButton")
+nutToc.Size = UDim2.new(0, 88, 0, 40)
+nutToc.Position = UDim2.new(0, 10, 0, 140)
+nutToc.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+nutToc.TextColor3 = Color3.fromRGB(255, 50, 50)
+nutToc.Text = "Tăng tốc"
+nutToc.Font = Enum.Font.GothamBold
+nutToc.TextSize = 11
+nutToc.Parent = khung
+Instance.new("UICorner", nutToc).CornerRadius = UDim.new(0, 8)
+
+local nutBay = Instance.new("TextButton")
+nutBay.Size = UDim2.new(0, 88, 0, 40)
+nutBay.Position = UDim2.new(0, 106, 0, 140)
+nutBay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+nutBay.TextColor3 = Color3.fromRGB(255, 50, 50)
+nutBay.Text = "Bay chạy hộ"
+nutBay.Font = Enum.Font.GothamBold
+nutBay.TextSize = 11
+nutBay.TextWrapped = true
+nutBay.Parent = khung
+Instance.new("UICorner", nutBay).CornerRadius = UDim.new(0, 8)
+
+local nhanToc = Instance.new("TextLabel")
+nhanToc.Size = UDim2.new(0, 184, 0, 14)
+nhanToc.Position = UDim2.new(0, 10, 0, 185)
+nhanToc.BackgroundTransparency = 1
+nhanToc.TextColor3 = Color3.fromRGB(200, 200, 200)
+nhanToc.Text = "Tốc độ: 30"
+nhanToc.Font = Enum.Font.Gotham
+nhanToc.TextSize = 10
+nhanToc.Parent = khung
+
+local thanh = Instance.new("TextButton")
+thanh.Size = UDim2.new(0, 184, 0, 16)
+thanh.Position = UDim2.new(0, 10, 0, 203)
+thanh.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+thanh.Text = ""
+thanh.Parent = khung
+Instance.new("UICorner", thanh).CornerRadius = UDim.new(0, 3)
+
+local diem = Instance.new("Frame")
+diem.Size = UDim2.new(0, 14, 1, 0)
+diem.Position = UDim2.new(0.1667, -7, 0, 0)
+diem.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+diem.Parent = thanh
+Instance.new("UICorner", diem).CornerRadius = UDim.new(0, 3)
+
+nutToc.MouseButton1Click:Connect(function()
+    trangThai.tangToc = not trangThai.tangToc
+    if trangThai.tangToc then
+        nutToc.Text = "Tăng tốc: BẬT"
+        nutToc.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        nutToc.TextColor3 = Color3.fromRGB(255, 255, 255)
+        local nv = LocalPlayer.Character
+        if nv then
+            local hum = nv:FindFirstChildOfClass("Humanoid")
+            if hum then trangThai.tocDoGoc = hum.WalkSpeed end
+        end
+    else
+        nutToc.Text = "Tăng tốc"
+        nutToc.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        nutToc.TextColor3 = Color3.fromRGB(255, 50, 50)
+        local nv = LocalPlayer.Character
+        if nv then
+            local hum = nv:FindFirstChildOfClass("Humanoid")
+            if hum then hum.WalkSpeed = trangThai.tocDoGoc end
         end
     end
 end)
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Position = UDim2.new(0, 0, 0, 10)
-Title.BackgroundTransparency = 1
-Title.Text = "Cu hub, turbo savannah life"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextTransparency = 1
-Title.TextSize = 16
-Title.Font = Enum.Font.FredokaOne
-Title.Parent = MainFrame
-
-local AvatarImage = Instance.new("ImageLabel")
-AvatarImage.Size = UDim2.new(0, 50, 0, 50)
-AvatarImage.Position = UDim2.new(0.5, -25, 0, 45)
-AvatarImage.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-AvatarImage.ImageTransparency = 1
-pcall(function()
-    AvatarImage.Image = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+nutBay.MouseButton1Click:Connect(function()
+    trangThai.bayChayHo = not trangThai.bayChayHo
+    if trangThai.bayChayHo then
+        nutBay.Text = "Bay: BẬT"
+        nutBay.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        nutBay.TextColor3 = Color3.fromRGB(255, 255, 255)
+        task.spawn(bayChayHoLoop)
+    else
+        nutBay.Text = "Bay chạy hộ"
+        nutBay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        nutBay.TextColor3 = Color3.fromRGB(255, 50, 50)
+    end
 end)
-AvatarImage.Parent = MainFrame
 
-local AvatarCorner = Instance.new("UICorner")
-AvatarCorner.CornerRadius = UDim.new(1, 0)
-AvatarCorner.Parent = AvatarImage
+local dangKeo = false
+thanh.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dangKeo = true
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dangKeo = false
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if not dangKeo then return end
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch then
+        local x = UserInputService:GetMouseLocation().X
+        local bx = thanh.AbsolutePosition.X
+        local bw = thanh.AbsoluteSize.X
+        if bw > 0 then
+            local tyLe = math.clamp((x - bx) / bw, 0, 1)
+            diem.Position = UDim2.new(tyLe, -diem.AbsoluteSize.X/2, 0, 0)
+            trangThai.tocDo = math.floor(16 + tyLe * (100 - 16))
+            nhanToc.Text = "Tốc độ: " .. trangThai.tocDo
+        end
+    end
+end)
 
-local NameLabel = Instance.new("TextLabel")
-NameLabel.Size = UDim2.new(1, 0, 0, 20)
-NameLabel.Position = UDim2.new(0, 0, 0, 100)
-NameLabel.BackgroundTransparency = 1
-NameLabel.Text = LocalPlayer.DisplayName .. " (@" .. LocalPlayer.Name .. ")"
-NameLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-NameLabel.TextTransparency = 1
-NameLabel.TextSize = 12
-NameLabel.Font = Enum.Font.SourceSansBold
-NameLabel.Parent = MainFrame
+local nutKhoaMo = Instance.new("TextButton")
+nutKhoaMo.Size = UDim2.new(0, 16, 0, 16)
+nutKhoaMo.Position = UDim2.new(0, 10, 0, 232)
+nutKhoaMo.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+nutKhoaMo.TextColor3 = Color3.fromRGB(120, 120, 120)
+nutKhoaMo.Text = "M"
+nutKhoaMo.Font = Enum.Font.GothamBold
+nutKhoaMo.TextSize = 9
+nutKhoaMo.Parent = khung
+Instance.new("UICorner", nutKhoaMo).CornerRadius = UDim.new(0, 3)
 
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Size = UDim2.new(0, 320, 0, 35)
-StatusLabel.Position = UDim2.new(0.5, -160, 0, 135)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = ""
-StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-StatusLabel.TextTransparency = 1
-StatusLabel.TextSize = 22 -- Tăng kích thước chữ to hơn nữa
-StatusLabel.Font = Enum.Font.SourceSansBold
-StatusLabel.Parent = MainFrame
+local nutKhoaThao = Instance.new("TextButton")
+nutKhoaThao.Size = UDim2.new(0, 16, 0, 16)
+nutKhoaThao.Position = UDim2.new(0, 30, 0, 232)
+nutKhoaThao.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+nutKhoaThao.TextColor3 = Color3.fromRGB(120, 120, 120)
+nutKhoaThao.Text = "T"
+nutKhoaThao.Font = Enum.Font.GothamBold
+nutKhoaThao.TextSize = 9
+nutKhoaThao.Parent = khung
+Instance.new("UICorner", nutKhoaThao).CornerRadius = UDim.new(0, 3)
 
-local tweenInfo = TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-TweenService:Create(MainFrame, tweenInfo, {BackgroundTransparency = 0}):Play()
-TweenService:Create(UIStroke, tweenInfo, {Transparency = 0}):Play()
-TweenService:Create(Title, tweenInfo, {TextTransparency = 0}):Play()
-TweenService:Create(AvatarImage, tweenInfo, {ImageTransparency = 0}):Play()
-TweenService:Create(NameLabel, tweenInfo, {TextTransparency = 0}):Play()
-TweenService:Create(StatusLabel, tweenInfo, {TextTransparency = 0}):Play()
+nutKhoaMo.MouseButton1Click:Connect(function()
+    trangThai.khoaNutMo = not trangThai.khoaNutMo
+    if trangThai.khoaNutMo then
+        nutKhoaMo.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
+        nutKhoaMo.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        nutKhoaMo.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+        nutKhoaMo.TextColor3 = Color3.fromRGB(120, 120, 120)
+    end
+end)
 
-task.spawn(function()
-    task.wait(2)
-    
-    StatusLabel.Text = "Đang xác minh quyền cho phép"
-    task.wait(3)
-    
-    StatusLabel.Text = "Xác điện cấu hình phone"
-    task.wait(3)
-    
-    StatusLabel.Text = "Cu hub không chạy được ngay bây giờ"
-    task.wait(3)
-    
-    rainbowRunning = false
-    pcall(function()
-        ScreenGui:Destroy()
+nutKhoaThao.MouseButton1Click:Connect(function()
+    trangThai.khoaNutThao = not trangThai.khoaNutThao
+    if trangThai.khoaNutThao then
+        nutKhoaThao.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
+        nutKhoaThao.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nutThao.BackgroundTransparency = 0.99
+    else
+        nutKhoaThao.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+        nutKhoaThao.TextColor3 = Color3.fromRGB(120, 120, 120)
+        nutThao.BackgroundTransparency = 0.15
+    end
+end)
+
+nutThao.MouseButton1Click:Connect(function()
+    task.spawn(function()
+        for i = 1, 10 do
+            guiRemoteLatch()
+            task.wait(0.05)
+        end
     end)
-    
-    loadstring(game:HttpGet("https://secure-lua-paste.lovable.app/raw/savanav6")
+    local vienCu = nutThao:FindFirstChildOfClass("UIStroke")
+    if vienCu then
+        local mauCu = vienCu.Color
+        vienCu.Color = Color3.fromRGB(0, 255, 0)
+        task.wait(0.3)
+        vienCu.Color = mauCu
+    end
 end)
+
+RunService.Heartbeat:Connect(function()
+    pcall(function()
+        local nv = LocalPlayer.Character
+        if not nv then return end
+        if trangThai.voHanNangLuong then
+            pcall(function() nv:SetAttribute("Stamina", 100) end)
+            pcall(function() nv:SetAttribute("StaminaRanOut", false) end)
+        end
+        if trangThai.voHanOxygen then
+            pcall(function() nv:SetAttribute("Oxygen", 100) end)
+        end
+        if trangThai.tangToc then
+            local hum = nv:FindFirstChildOfClass("Humanoid")
+            if hum then pcall(function() hum.WalkSpeed = trangThai.tocDo end) end
+        end
+    end)
+end)
+
+nutMo.MouseButton1Click:Connect(function()
+    khung.Visible = not khung.Visible
+end)
+
+print("[Cu hub 2.0] TẢI THÀNH CÔNG")
