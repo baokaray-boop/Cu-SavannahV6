@@ -1,4 +1,4 @@
--- Cu hub 3.0 - FULL HOÀN CHỈNH (Fly giống Kali)
+-- Cu hub 2.0 - FULL HOÀN CHỈNH
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -71,6 +71,14 @@ local function guiRemoteLatch()
     pcall(function() remoteLatch:FireServer(hum) end)
 end
 
+-- ANTI GRAB: Gửi 0.1s/lần
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if trangThai.antiGrab then pcall(guiRemoteLatch) end
+    end
+end)
+
 local function taoVien(parent, doDay)
     local vien = Instance.new("UIStroke")
     vien.Thickness = doDay or 2
@@ -138,149 +146,14 @@ sg.ResetOnSpawn = false
 sg.IgnoreGuiInset = true
 sg.Parent = pg
 
--- JOYSTICK
+-- Biến joystick
 local huongJoy = Vector3.new(0, 0, 0)
 local dangKeoJoy = false
 local tamJoy = Vector2.new(0, 0)
 local ngonDangGiu = nil
+local huongY = 0
 
-local joystick = Instance.new("Frame")
-joystick.Size = UDim2.new(0, 130, 0, 130)
-joystick.Position = UDim2.new(0, 20, 1, -200)
-joystick.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-joystick.BackgroundTransparency = 0.5
-joystick.Visible = false
-joystick.Active = true
-joystick.Parent = sg
-Instance.new("UICorner", joystick).CornerRadius = UDim.new(1, 0)
-local vj = Instance.new("UIStroke", joystick)
-vj.Color = Color3.fromRGB(0, 255, 100)
-vj.Thickness = 2
-
-local diemJoy = Instance.new("Frame")
-diemJoy.Size = UDim2.new(0, 60, 0, 60)
-diemJoy.Position = UDim2.new(0.5, -30, 0.5, -30)
-diemJoy.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
-diemJoy.BackgroundTransparency = 0.3
-diemJoy.Parent = joystick
-Instance.new("UICorner", diemJoy).CornerRadius = UDim.new(1, 0)
-
-joystick.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
-        if ngonDangGiu == nil then
-            dangKeoJoy = true
-            ngonDangGiu = input
-            tamJoy = Vector2.new(
-                joystick.AbsolutePosition.X + joystick.AbsoluteSize.X/2,
-                joystick.AbsolutePosition.Y + joystick.AbsoluteSize.Y/2
-            )
-        end
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if not dangKeoJoy then return end
-    if input ~= ngonDangGiu then return end
-    local posChuot = Vector2.new(input.Position.X, input.Position.Y)
-    local delta = posChuot - tamJoy
-    local kc = delta.Magnitude
-    local gioiHan = 40
-    if kc > gioiHan then delta = delta.Unit * gioiHan end
-    diemJoy.Position = UDim2.new(0.5, delta.X - 30, 0.5, delta.Y - 30)
-    huongJoy = Vector3.new(delta.X / gioiHan, 0, delta.Y / gioiHan)
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if not dangKeoJoy then return end
-    if input == ngonDangGiu then
-        dangKeoJoy = false
-        ngonDangGiu = nil
-        diemJoy.Position = UDim2.new(0.5, -30, 0.5, -30)
-        huongJoy = Vector3.new(0, 0, 0)
-    end
-end)
-
--- FLY GIỐNG KALI (BodyVelocity + BodyGyro)
-local bvFly = nil
-local bgFly = nil
-
-local function batFly()
-    local nv = LocalPlayer.Character
-    local goc = nv and nv:FindFirstChild("HumanoidRootPart")
-    local hum = nv and nv:FindFirstChildOfClass("Humanoid")
-    if not goc or not hum then return end
-    hum.PlatformStand = true
-    -- BodyVelocity - di chuyển
-    if bvFly then pcall(function() bvFly:Destroy() end) end
-    bvFly = Instance.new("BodyVelocity")
-    bvFly.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-    bvFly.P = 1250
-    bvFly.Velocity = Vector3.new(0, 0, 0)
-    bvFly.Parent = goc
-    -- BodyGyro - xoay mặt (MaxTorque giống Kali)
-    if bgFly then pcall(function() bgFly:Destroy() end) end
-    bgFly = Instance.new("BodyGyro")
-    bgFly.MaxTorque = Vector3.new(8999999488, 8999999488, 8999999488)
-    bgFly.P = 3000
-    bgFly.D = 500
-    bgFly.CFrame = goc.CFrame
-    bgFly.Parent = goc
-end
-
-local function tatFly()
-    if bvFly then pcall(function() bvFly:Destroy() end) bvFly = nil end
-    if bgFly then pcall(function() bgFly:Destroy() end) bgFly = nil end
-    pcall(function()
-        local nv = LocalPlayer.Character
-        if nv then
-            local hum = nv:FindFirstChildOfClass("Humanoid")
-            if hum then hum.PlatformStand = false end
-        end
-    end)
-end
-
--- Cập nhật velocity + gyro mỗi frame (giống Kali)
-RunService.Heartbeat:Connect(function(dt)
-    pcall(function()
-        if not trangThai.fly then return end
-        local nv = LocalPlayer.Character
-        local goc = nv and nv:FindFirstChild("HumanoidRootPart")
-        if not goc then return end
-        if not bvFly or not bvFly.Parent then batFly() end
-        if not bvFly then return end
-        -- Hướng bay theo camera
-        if huongJoy.Magnitude > 0.05 then
-            local huongCam = Camera.CFrame.LookVector
-            local huongPhai = Camera.CFrame.RightVector
-            local huongDi = (huongCam * -huongJoy.Z + huongPhai * huongJoy.X)
-            huongDi = Vector3.new(huongDi.X, 0, huongDi.Z)
-            if huongDi.Magnitude > 0.1 then
-                huongDi = huongDi.Unit
-                bvFly.Velocity = huongDi * trangThai.tocDoFly
-            else
-                bvFly.Velocity = Vector3.new(0, 0, 0)
-            end
-        else
-            bvFly.Velocity = Vector3.new(0, 0, 0)
-        end
-        -- Xoay mặt theo camera (BodyGyro)
-        if bgFly and bgFly.Parent then
-            local huongCam = Camera.CFrame.LookVector
-            bgFly.CFrame = CFrame.lookAt(goc.Position, goc.Position + Vector3.new(huongCam.X, 0, huongCam.Z))
-        end
-    end)
-end)
-
--- ANTI GRAB 0.5s
-task.spawn(function()
-    while true do
-        task.wait(0.5)
-        if trangThai.antiGrab then pcall(guiRemoteLatch) end
-    end
-end)
-
--- NÚT MỞ
+-- Nút mở
 local nutMo = Instance.new("TextButton")
 nutMo.Size = UDim2.new(0, 90, 0, 40)
 nutMo.Position = UDim2.new(0, 20, 0, 200)
@@ -296,6 +169,7 @@ Instance.new("UICorner", nutMo).CornerRadius = UDim.new(0, 8)
 taoVien(nutMo, 2)
 keoDuoc(nutMo, function() return trangThai.khoaNutMo end)
 
+-- Nút THÁO
 local nutThao = Instance.new("TextButton")
 nutThao.Size = UDim2.new(0, 80, 0, 80)
 nutThao.Position = UDim2.new(0, 20, 0, 250)
@@ -309,6 +183,7 @@ Instance.new("UICorner", nutThao).CornerRadius = UDim.new(0, 10)
 taoVien(nutThao, 3)
 keoDuoc(nutThao, function() return trangThai.khoaNutThao end)
 
+-- Menu
 local khung = Instance.new("Frame")
 khung.Size = UDim2.new(0, 204, 0, 258)
 khung.Position = UDim2.new(0.5, -102, 0.5, -129)
@@ -447,15 +322,198 @@ congToc.MouseButton1Click:Connect(function()
     giuaToc.Text = "Tăng tốc: " .. trangThai.tocDo
 end)
 
+-- JOYSTICK
+local joystick = Instance.new("Frame")
+joystick.Size = UDim2.new(0, 130, 0, 130)
+joystick.Position = UDim2.new(0, 20, 1, -200)
+joystick.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+joystick.BackgroundTransparency = 0.5
+joystick.Visible = false
+joystick.Active = true
+joystick.Parent = sg
+Instance.new("UICorner", joystick).CornerRadius = UDim.new(1, 0)
+local vj = Instance.new("UIStroke", joystick)
+vj.Color = Color3.fromRGB(0, 255, 100)
+vj.Thickness = 2
+
+local diemJoy = Instance.new("Frame")
+diemJoy.Size = UDim2.new(0, 60, 0, 60)
+diemJoy.Position = UDim2.new(0.5, -30, 0.5, -30)
+diemJoy.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+diemJoy.BackgroundTransparency = 0.3
+diemJoy.Parent = joystick
+Instance.new("UICorner", diemJoy).CornerRadius = UDim.new(1, 0)
+
+joystick.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        if ngonDangGiu == nil then
+            dangKeoJoy = true
+            ngonDangGiu = input
+            tamJoy = Vector2.new(
+                joystick.AbsolutePosition.X + joystick.AbsoluteSize.X/2,
+                joystick.AbsolutePosition.Y + joystick.AbsoluteSize.Y/2
+            )
+        end
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if not dangKeoJoy then return end
+    if input ~= ngonDangGiu then return end
+    local posChuot = Vector2.new(input.Position.X, input.Position.Y)
+    local delta = posChuot - tamJoy
+    local kc = delta.Magnitude
+    local gioiHan = 40
+    if kc > gioiHan then delta = delta.Unit * gioiHan end
+    diemJoy.Position = UDim2.new(0.5, delta.X - 30, 0.5, delta.Y - 30)
+    huongJoy = Vector3.new(delta.X / gioiHan, 0, delta.Y / gioiHan)
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if not dangKeoJoy then return end
+    if input == ngonDangGiu then
+        dangKeoJoy = false
+        ngonDangGiu = nil
+        diemJoy.Position = UDim2.new(0.5, -30, 0.5, -30)
+        huongJoy = Vector3.new(0, 0, 0)
+    end
+end)
+
+-- Nút LÊN
+local nutLen = Instance.new("TextButton")
+nutLen.Size = UDim2.new(0, 45, 0, 45)
+nutLen.Position = UDim2.new(0, 155, 1, -200)
+nutLen.BackgroundColor3 = Color3.fromRGB(30, 100, 30)
+nutLen.TextColor3 = Color3.fromRGB(255, 255, 255)
+nutLen.Text = "+"
+nutLen.Font = Enum.Font.GothamBold
+nutLen.TextSize = 24
+nutLen.Visible = false
+nutLen.Parent = sg
+Instance.new("UICorner", nutLen).CornerRadius = UDim.new(1, 0)
+
+nutLen.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        huongY = 1
+    end
+end)
+nutLen.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        huongY = 0
+    end
+end)
+
+-- Nút XUỐNG
+local nutXuong = Instance.new("TextButton")
+nutXuong.Size = UDim2.new(0, 45, 0, 45)
+nutXuong.Position = UDim2.new(0, 155, 1, -150)
+nutXuong.BackgroundColor3 = Color3.fromRGB(100, 30, 30)
+nutXuong.TextColor3 = Color3.fromRGB(255, 255, 255)
+nutXuong.Text = "-"
+nutXuong.Font = Enum.Font.GothamBold
+nutXuong.TextSize = 24
+nutXuong.Visible = false
+nutXuong.Parent = sg
+Instance.new("UICorner", nutXuong).CornerRadius = UDim.new(1, 0)
+
+nutXuong.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        huongY = -1
+    end
+end)
+nutXuong.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        huongY = 0
+    end
+end)
+
+-- FLY
+local bvFly = nil
+local bgFly = nil
+
+local function batFly()
+    local nv = LocalPlayer.Character
+    local goc = nv and nv:FindFirstChild("HumanoidRootPart")
+    local hum = nv and nv:FindFirstChildOfClass("Humanoid")
+    if not goc or not hum then return end
+    hum.PlatformStand = true
+    if bvFly then pcall(function() bvFly:Destroy() end) end
+    bvFly = Instance.new("BodyVelocity")
+    bvFly.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    bvFly.P = 1250
+    bvFly.Velocity = Vector3.new(0, 0, 0)
+    bvFly.Parent = goc
+    if bgFly then pcall(function() bgFly:Destroy() end) end
+    bgFly = Instance.new("BodyGyro")
+    bgFly.MaxTorque = Vector3.new(8999999488, 8999999488, 8999999488)
+    bgFly.P = 3000
+    bgFly.D = 500
+    bgFly.CFrame = goc.CFrame
+    bgFly.Parent = goc
+end
+
+local function tatFly()
+    if bvFly then pcall(function() bvFly:Destroy() end) bvFly = nil end
+    if bgFly then pcall(function() bgFly:Destroy() end) bgFly = nil end
+    huongY = 0
+    pcall(function()
+        local nv = LocalPlayer.Character
+        if nv then
+            local hum = nv:FindFirstChildOfClass("Humanoid")
+            if hum then hum.PlatformStand = false end
+        end
+    end)
+end
+
+RunService.Heartbeat:Connect(function(dt)
+    pcall(function()
+        if not trangThai.fly then return end
+        local nv = LocalPlayer.Character
+        local goc = nv and nv:FindFirstChild("HumanoidRootPart")
+        if not goc then return end
+        if not bvFly or not bvFly.Parent then batFly() end
+        if not bvFly then return end
+        local huongNgang = Vector3.new(0, 0, 0)
+        if huongJoy.Magnitude > 0.05 then
+            local huongCam = Camera.CFrame.LookVector
+            local huongPhai = Camera.CFrame.RightVector
+            local h = (huongCam * -huongJoy.Z + huongPhai * huongJoy.X)
+            h = Vector3.new(h.X, 0, h.Z)
+            if h.Magnitude > 0.1 then huongNgang = h.Unit end
+        end
+        local huongDoc = Vector3.new(0, huongY, 0)
+        local huongTong = huongNgang + huongDoc
+        if huongTong.Magnitude > 0.05 then
+            bvFly.Velocity = huongTong.Unit * trangThai.tocDoFly
+        else
+            bvFly.Velocity = Vector3.new(0, 0, 0)
+        end
+        if bgFly and bgFly.Parent then
+            local huongCam = Camera.CFrame.LookVector
+            bgFly.CFrame = CFrame.lookAt(goc.Position, goc.Position + Vector3.new(huongCam.X, 0, huongCam.Z))
+        end
+    end)
+end)
+
+-- Fly toggle
 local _, truFly, giuaFly, congFly = taoFrameSo(UDim2.new(0, 10, 0, 185), "Fly: 30", function(nut)
     trangThai.fly = not trangThai.fly
     if trangThai.fly then
         nut.TextColor3 = Color3.fromRGB(0, 255, 100)
         joystick.Visible = true
+        nutLen.Visible = true
+        nutXuong.Visible = true
         batFly()
     else
         nut.TextColor3 = Color3.fromRGB(255, 50, 50)
         joystick.Visible = false
+        nutLen.Visible = false
+        nutXuong.Visible = false
         tatFly()
     end
 end)
@@ -468,6 +526,7 @@ congFly.MouseButton1Click:Connect(function()
     giuaFly.Text = "Fly: " .. trangThai.tocDoFly
 end)
 
+-- Nút khoá
 local nutKhoaMo = Instance.new("TextButton")
 nutKhoaMo.Size = UDim2.new(0, 16, 0, 16)
 nutKhoaMo.Position = UDim2.new(0, 10, 0, 232)
@@ -521,13 +580,6 @@ nutThao.MouseButton1Click:Connect(function()
             task.wait(0.05)
         end
     end)
-    local vienCu = nutThao:FindFirstChildOfClass("UIStroke")
-    if vienCu then
-        local mauCu = vienCu.Color
-        vienCu.Color = Color3.fromRGB(0, 255, 0)
-        task.wait(0.3)
-        vienCu.Color = mauCu
-    end
 end)
 
 RunService.Heartbeat:Connect(function()
