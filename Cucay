@@ -1,1 +1,901 @@
-kk
+-- Cu hub 3.1 Pro - Hitbox theo Kali
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local RS = game:GetService("ReplicatedStorage")
+local LP = Players.LocalPlayer
+local Cam = workspace.CurrentCamera
+
+local tt = { nl=false, oxy=false, te=false, ag=false, ka=false, bk=false,
+    hitbox=false, toc=false, fly=false,
+    spd=30, spdF=30, spdG=16, khoaM=false, khoaT=false,
+    hitboxSize=40, hitboxMoTa=50 }
+
+local whitelist = {}
+
+local rAtk, rLatch
+for _, v in ipairs(RS:GetDescendants()) do
+    if v:IsA("RemoteEvent") then
+        local tn = string.lower(v.Name)
+        if tn == "attackhandlerremoteevent" then rAtk = v
+        elseif tn == "latchedplayersnotifyremoteevent" then rLatch = v end
+    end
+end
+
+-- ====== TẠO HITBOX PART ======
+local hitboxPart = nil
+local sizeGocChar = {} -- Lưu size gốc của Capsule_Head các mục tiêu
+
+local function timFolderLeaves()
+    for _, v in ipairs(workspace:GetChildren()) do
+        if v.Name == "Leaves" then return v end
+    end
+    return workspace
+end
+
+local function taoHitbox()
+    if hitboxPart then pcall(function() hitboxPart:Destroy() end) end
+    hitboxPart = Instance.new("Part")
+    hitboxPart.Name = "Hitbox"
+    hitboxPart.Size = Vector3.new(tt.hitboxSize, tt.hitboxSize/4, tt.hitboxSize/2)
+    hitboxPart.Anchored = true
+    hitboxPart.CanCollide = false
+    hitboxPart.Material = Enum.Material.ForceField
+    hitboxPart.Color = Color3.fromRGB(255, 0, 0)
+    hitboxPart.Transparency = tt.hitboxMoTa / 100
+    hitboxPart.Parent = timFolderLeaves()
+end
+
+local function capNhatHitbox()
+    if not tt.hitbox or not hitboxPart then return end
+    local nv = LP.Character
+    local g = nv and nv:FindFirstChild("HumanoidRootPart")
+    if not g then return end
+    -- Đặt hitbox phía trước nhân vật
+    local huongNhin = g.CFrame.LookVector
+    local viTriHitbox = g.Position + huongNhin * (tt.hitboxSize/2 + 3)
+    hitboxPart.CFrame = CFrame.new(viTriHitbox)
+    hitboxPart.Size = Vector3.new(tt.hitboxSize, tt.hitboxSize/4, tt.hitboxSize/2)
+    hitboxPart.Transparency = tt.hitboxMoTa / 100
+end
+
+-- Mở rộng part cơ thể mục tiêu
+local function moRongHitboxTarget(p)
+    local char = p.Character
+    if not char then return end
+    for _, obj in ipairs(char:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local tn = string.lower(obj.Name)
+            if tn:find("capsule_head") or tn:find("head") then
+                local key = p.Name .. "_" .. obj.Name
+                if not sizeGocChar[key] then
+                    sizeGocChar[key] = obj.Size
+                end
+                pcall(function()
+                    obj.Size = Vector3.new(
+                        tt.hitboxSize/2,
+                        tt.hitboxSize/2,
+                        tt.hitboxSize/2
+                    )
+                end)
+            end
+        end
+    end
+end
+
+local function khoiPhucHitboxTarget()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LP and p.Character then
+            for _, obj in ipairs(p.Character:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    local key = p.Name .. "_" .. obj.Name
+                    if sizeGocChar[key] then
+                        pcall(function() obj.Size = sizeGocChar[key] end)
+                    end
+                end
+            end
+        end
+    end
+    sizeGocChar = {}
+end
+
+-- ====== KILL AURA ======
+task.spawn(function()
+    while task.wait(0.2) do
+        if tt.ka and rAtk then
+            pcall(function()
+                local nv = LP.Character
+                local g = nv and nv:FindFirstChild("HumanoidRootPart")
+                if not g then return end
+                local banKinh = tt.hitbox and (tt.hitboxSize + 10) or 35
+                local gan, km = nil, banKinh
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= LP and p.Character and not whitelist[p] then
+                        local m = p.Character:FindFirstChild("HumanoidRootPart")
+                        local h = p.Character:FindFirstChildOfClass("Humanoid")
+                        if m and h and h.Health > 0 then
+                            local kc = (g.Position - m.Position).Magnitude
+                            if kc <= km then km = kc; gan = h end
+                        end
+                    end
+                end
+                if gan then rAtk:FireServer(gan) end
+            end)
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if tt.ag and rLatch then
+            pcall(function() rLatch:FireServer() end)
+            pcall(function() rLatch:FireServer(LP) end)
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if tt.te then
+            pcall(function()
+                local nv = LP.Character
+                local h = nv and nv:FindFirstChildOfClass("Humanoid")
+                if h then
+                    h:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+                    h:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+                    h:SetStateEnabled(Enum.HumanoidStateType.GettingUp, false)
+                    h:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
+                end
+            end)
+        end
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    pcall(function()
+        local nv = LP.Character
+        if not nv then return end
+        local h = nv:FindFirstChildOfClass("Humanoid")
+        if tt.nl then
+            nv:SetAttribute("Stamina", 100)
+            nv:SetAttribute("StaminaRanOut", false)
+        end
+        if tt.oxy then nv:SetAttribute("Oxygen", 100) end
+        if tt.toc and not tt.fly and not tt.bk and h then
+            h.WalkSpeed = tt.spd
+        end
+        -- Hitbox
+        if tt.hitbox then
+            capNhatHitbox()
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= LP then moRongHitboxTarget(p) end
+            end
+        end
+    end)
+end)
+
+-- ====== GUI ======
+local pg = LP:FindFirstChildOfClass("PlayerGui") or LP:WaitForChild("PlayerGui", 10)
+local sg = Instance.new("ScreenGui")
+sg.Name = "CuHub31"
+sg.ResetOnSpawn = false
+sg.IgnoreGuiInset = true
+sg.Parent = pg
+
+local function vien(p, d)
+    local v = Instance.new("UIStroke")
+    v.Thickness = d or 2
+    v.Color = Color3.fromRGB(255, 0, 0)
+    v.Parent = p
+    local g = Instance.new("UIGradient", v)
+    g.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)),
+        ColorSequenceKeypoint.new(0.17, Color3.fromRGB(255,255,0)),
+        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0,255,0)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0,255,255)),
+        ColorSequenceKeypoint.new(0.67, Color3.fromRGB(0,0,255)),
+        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255,0,255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,0)),
+    }
+    task.spawn(function()
+        while v.Parent do
+            for i = 0, 360, 5 do
+                if not v.Parent then break end
+                g.Rotation = i
+                task.wait(0.03)
+            end
+        end
+    end)
+end
+
+local function keo(f, kt)
+    local k, bx, by, kx, ky = false, 0, 0, 0, 0
+    f.InputBegan:Connect(function(i)
+        if kt and kt() then return end
+        if i.UserInputType == Enum.UserInputType.MouseButton1
+        or i.UserInputType == Enum.UserInputType.Touch then
+            k = true; bx = i.Position.X; by = i.Position.Y
+            kx = f.Position.X.Offset; ky = f.Position.Y.Offset
+        end
+    end)
+    f.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1
+        or i.UserInputType == Enum.UserInputType.Touch then k = false end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if not k then return end
+        if kt and kt() then return end
+        if i.UserInputType == Enum.UserInputType.MouseMovement
+        or i.UserInputType == Enum.UserInputType.Touch then
+            f.Position = UDim2.new(0, kx + i.Position.X - bx, 0, ky + i.Position.Y - by)
+        end
+    end)
+end
+
+-- Joystick
+local hJoy = Vector3.new(0, 0, 0)
+local dKJ, tamJ, ngon, hY = false, Vector2.new(0, 0), nil, 0
+
+local joy = Instance.new("Frame")
+joy.Size = UDim2.new(0, 130, 0, 130)
+joy.Position = UDim2.new(0, 20, 1, -200)
+joy.BackgroundColor3 = Color3.fromRGB(30,30,35)
+joy.BackgroundTransparency = 0.5
+joy.Visible = false
+joy.Active = true
+joy.Parent = sg
+Instance.new("UICorner", joy).CornerRadius = UDim.new(1, 0)
+local vj = Instance.new("UIStroke", joy)
+vj.Color = Color3.fromRGB(0, 255, 100)
+vj.Thickness = 2
+
+local diem = Instance.new("Frame")
+diem.Size = UDim2.new(0, 60, 0, 60)
+diem.Position = UDim2.new(0.5, -30, 0.5, -30)
+diem.BackgroundColor3 = Color3.fromRGB(0,255,100)
+diem.BackgroundTransparency = 0.3
+diem.Parent = joy
+Instance.new("UICorner", diem).CornerRadius = UDim.new(1, 0)
+
+joy.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1
+    or i.UserInputType == Enum.UserInputType.Touch then
+        if ngon == nil then
+            dKJ = true; ngon = i
+            tamJ = Vector2.new(joy.AbsolutePosition.X + joy.AbsoluteSize.X/2,
+                               joy.AbsolutePosition.Y + joy.AbsoluteSize.Y/2)
+        end
+    end
+end)
+UIS.InputChanged:Connect(function(i)
+    if not dKJ or i ~= ngon then return end
+    local d = Vector2.new(i.Position.X, i.Position.Y) - tamJ
+    local kc = d.Magnitude
+    local gh = 40
+    if kc > gh then d = d.Unit * gh end
+    diem.Position = UDim2.new(0.5, d.X - 30, 0.5, d.Y - 30)
+    hJoy = Vector3.new(d.X / gh, 0, d.Y / gh)
+end)
+UIS.InputEnded:Connect(function(i)
+    if dKJ and i == ngon then
+        dKJ = false; ngon = nil
+        diem.Position = UDim2.new(0.5, -30, 0.5, -30)
+        hJoy = Vector3.new(0,0,0)
+    end
+end)
+
+local nutLen = Instance.new("TextButton")
+nutLen.Size = UDim2.new(0, 45, 0, 45)
+nutLen.Position = UDim2.new(0, 155, 1, -200)
+nutLen.BackgroundColor3 = Color3.fromRGB(30, 100, 30)
+nutLen.TextColor3 = Color3.fromRGB(255,255,255)
+nutLen.Text = "+"
+nutLen.Font = Enum.Font.GothamBold
+nutLen.TextSize = 24
+nutLen.Visible = false
+nutLen.Parent = sg
+Instance.new("UICorner", nutLen).CornerRadius = UDim.new(1, 0)
+nutLen.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1
+    or i.UserInputType == Enum.UserInputType.Touch then hY = 1 end
+end)
+nutLen.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1
+    or i.UserInputType == Enum.UserInputType.Touch then hY = 0 end
+end)
+
+local nutXuong = Instance.new("TextButton")
+nutXuong.Size = UDim2.new(0, 45, 0, 45)
+nutXuong.Position = UDim2.new(0, 155, 1, -150)
+nutXuong.BackgroundColor3 = Color3.fromRGB(100, 30, 30)
+nutXuong.TextColor3 = Color3.fromRGB(255,255,255)
+nutXuong.Text = "-"
+nutXuong.Font = Enum.Font.GothamBold
+nutXuong.TextSize = 24
+nutXuong.Visible = false
+nutXuong.Parent = sg
+Instance.new("UICorner", nutXuong).CornerRadius = UDim.new(1, 0)
+nutXuong.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1
+    or i.UserInputType == Enum.UserInputType.Touch then hY = -1 end
+end)
+nutXuong.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1
+    or i.UserInputType == Enum.UserInputType.Touch then hY = 0 end
+end)
+
+local nutTru = Instance.new("TextButton")
+nutTru.Size = UDim2.new(0, 80, 0, 80)
+nutTru.Position = UDim2.new(0, 260, 1, -200)
+nutTru.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
+nutTru.BackgroundTransparency = 0.3
+nutTru.TextColor3 = Color3.fromRGB(255,255,255)
+nutTru.Text = "<"
+nutTru.Font = Enum.Font.GothamBold
+nutTru.TextSize = 30
+nutTru.Visible = false
+nutTru.Parent = sg
+Instance.new("UICorner", nutTru).CornerRadius = UDim.new(1, 0)
+vien(nutTru, 2)
+
+local nutCong = Instance.new("TextButton")
+nutCong.Size = UDim2.new(0, 80, 0, 80)
+nutCong.Position = UDim2.new(0, 350, 1, -200)
+nutCong.BackgroundColor3 = Color3.fromRGB(100, 60, 60)
+nutCong.BackgroundTransparency = 0.3
+nutCong.TextColor3 = Color3.fromRGB(255,255,255)
+nutCong.Text = ">"
+nutCong.Font = Enum.Font.GothamBold
+nutCong.TextSize = 30
+nutCong.Visible = false
+nutCong.Parent = sg
+Instance.new("UICorner", nutCong).CornerRadius = UDim.new(1, 0)
+vien(nutCong, 2)
+
+local mtBK = nil
+local function dsN()
+    local d = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LP and p.Character and not whitelist[p] then
+            local h = p.Character:FindFirstChildOfClass("Humanoid")
+            local m = p.Character:FindFirstChild("HumanoidRootPart")
+            if h and h.Health > 0 and m then table.insert(d, p) end
+        end
+    end
+    return d
+end
+local function layMT()
+    if mtBK and mtBK.Parent and mtBK.Character and not whitelist[mtBK] then
+        local h = mtBK.Character:FindFirstChildOfClass("Humanoid")
+        if h and h.Health > 0 then return mtBK end
+    end
+    local nv = LP.Character
+    local g = nv and nv:FindFirstChild("HumanoidRootPart")
+    if not g then return nil end
+    local gan, km = nil, math.huge
+    for _, p in ipairs(dsN()) do
+        local m = p.Character:FindFirstChild("HumanoidRootPart")
+        if m then
+            local kc = (g.Position - m.Position).Magnitude
+            if kc < km then km = kc; gan = p end
+        end
+    end
+    mtBK = gan
+    return gan
+end
+local function doiMT(b)
+    local d = dsN()
+    if #d == 0 then return end
+    local i = 1
+    for j, p in ipairs(d) do if p == mtBK then i = j break end end
+    i = i + b
+    if i < 1 then i = #d end
+    if i > #d then i = 1 end
+    mtBK = d[i]
+end
+nutTru.MouseButton1Click:Connect(function() doiMT(-1) end)
+nutCong.MouseButton1Click:Connect(function() doiMT(1) end)
+
+local bvChung, bgChung = nil, nil
+local cheDo = "none"
+
+local function batBV()
+    local nv = LP.Character
+    local g = nv and nv:FindFirstChild("HumanoidRootPart")
+    local h = nv and nv:FindFirstChildOfClass("Humanoid")
+    if not g or not h then return end
+    h.PlatformStand = true
+    if bvChung then pcall(function() bvChung:Destroy() end) end
+    bvChung = Instance.new("BodyVelocity")
+    bvChung.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    bvChung.P = 1250
+    bvChung.Velocity = Vector3.new(0,0,0)
+    bvChung.Parent = g
+    if bgChung then pcall(function() bgChung:Destroy() end) end
+    bgChung = Instance.new("BodyGyro")
+    bgChung.MaxTorque = Vector3.new(8999999488, 8999999488, 8999999488)
+    bgChung.P = 3000; bgChung.D = 500
+    bgChung.CFrame = g.CFrame
+    bgChung.Parent = g
+end
+
+local function tatBV()
+    if bvChung then pcall(function() bvChung:Destroy() end) bvChung = nil end
+    if bgChung then pcall(function() bgChung:Destroy() end) bgChung = nil end
+    local nv = LP.Character
+    if nv then
+        local h = nv:FindFirstChildOfClass("Humanoid")
+        if h then h.PlatformStand = false end
+    end
+end
+
+local bkSt, bkTG, bkGoc = "a", 0, 0
+
+RunService.Heartbeat:Connect(function(dt)
+    pcall(function()
+        local nv = LP.Character
+        local g = nv and nv:FindFirstChild("HumanoidRootPart")
+        if not g then return end
+        if cheDo == "none" then return end
+        if not bvChung or not bvChung.Parent then batBV() end
+        if not bvChung then return end
+        local velAuto = Vector3.new(0, 0, 0)
+        if cheDo == "bk" then
+            local mt = layMT()
+            if not mt or not mt.Character then
+                bvChung.Velocity = Vector3.new(0, 0, 0)
+                return
+            end
+            local mh = mt.Character:FindFirstChild("HumanoidRootPart")
+            if not mh then return end
+            if bkSt == "a" then
+                local vd = mh.Position + Vector3.new(0,20,0)
+                local hg = vd - g.Position
+                if hg.Magnitude < 3 then bkSt = "c"; bkTG = 0
+                else velAuto = hg.Unit * tt.spdF end
+            elseif bkSt == "c" then
+                local kc = (g.Position - mh.Position).Magnitude
+                if kc < 25 then bkTG = bkTG + dt end
+                bkGoc = bkGoc + dt*1.5
+                local vd = mh.Position + Vector3.new(math.cos(bkGoc)*12, 20, math.sin(bkGoc)*12)
+                local hg = vd - g.Position
+                velAuto = hg.Magnitude > 0.5 and hg.Unit * math.min(tt.spdF, hg.Magnitude*4) or Vector3.new(0,0,0)
+                if bkTG >= 7 then bkSt = "r"; bkTG = 0 end
+            elseif bkSt == "r" then
+                local hx = g.Position - mh.Position
+                hx = Vector3.new(hx.X, 0, hx.Z)
+                if hx.Magnitude < 0.5 then hx = Vector3.new(1,0,0) end
+                hx = hx.Unit
+                local vd = Vector3.new(mh.Position.X + hx.X*40, mh.Position.Y, mh.Position.Z + hx.Z*40)
+                local hg = vd - g.Position
+                if hg.Magnitude < 3 then bkSt = "w"; bkTG = 0
+                else velAuto = hg.Unit * tt.spdF end
+            elseif bkSt == "w" then
+                bkTG = bkTG + dt
+                velAuto = Vector3.new(0, -50, 0)
+                if bkTG >= 0.2 then bkSt = "a"; bkTG = 0 end
+            end
+        end
+        local velUser = Vector3.new(0, 0, 0)
+        if hJoy.Magnitude > 0.05 then
+            local hC = Cam.CFrame.LookVector
+            local hP = Cam.CFrame.RightVector
+            local hh = hC * -hJoy.Z + hP * hJoy.X
+            hh = Vector3.new(hh.X, 0, hh.Z)
+            if hh.Magnitude > 0.1 then velUser = hh.Unit * tt.spdF end
+        end
+        local velY = Vector3.new(0, hY * tt.spdF, 0)
+        bvChung.Velocity = velAuto + velUser + velY
+        if bgChung and bgChung.Parent then
+            local hC = Cam.CFrame.LookVector
+            bgChung.CFrame = CFrame.lookAt(g.Position, g.Position + Vector3.new(hC.X, 0, hC.Z))
+        end
+    end)
+end)
+
+RunService.Heartbeat:Connect(function(dt)
+    if not tt.fly or cheDo ~= "none" then return end
+    pcall(function()
+        local nv = LP.Character
+        local g = nv and nv:FindFirstChild("HumanoidRootPart")
+        if not g then return end
+        if not bvChung or not bvChung.Parent then batBV() end
+        if not bvChung then return end
+        local hN = Vector3.new(0,0,0)
+        if hJoy.Magnitude > 0.05 then
+            local hC = Cam.CFrame.LookVector
+            local hP = Cam.CFrame.RightVector
+            local hh = hC * -hJoy.Z + hP * hJoy.X
+            hh = Vector3.new(hh.X, 0, hh.Z)
+            if hh.Magnitude > 0.1 then hN = hh.Unit end
+        end
+        local hD = Vector3.new(0, hY, 0)
+        local hT = hN + hD
+        bvChung.Velocity = hT.Magnitude > 0.05 and hT.Unit * tt.spdF or Vector3.new(0,0,0)
+        if bgChung and bgChung.Parent then
+            local hC = Cam.CFrame.LookVector
+            bgChung.CFrame = CFrame.lookAt(g.Position, g.Position + Vector3.new(hC.X, 0, hC.Z))
+        end
+    end)
+end)
+
+-- Menu
+local nutMo = Instance.new("TextButton")
+nutMo.Size = UDim2.new(0, 100, 0, 40)
+nutMo.Position = UDim2.new(0, 20, 0, 200)
+nutMo.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+nutMo.BackgroundTransparency = 0.15
+nutMo.TextColor3 = Color3.fromRGB(255, 255, 255)
+nutMo.Text = "Cu hub 3.1 Pro"
+nutMo.Font = Enum.Font.GothamBold
+nutMo.TextSize = 12
+nutMo.Parent = sg
+Instance.new("UICorner", nutMo).CornerRadius = UDim.new(0, 8)
+vien(nutMo, 2)
+keo(nutMo, function() return tt.khoaM end)
+
+local nutThao = Instance.new("TextButton")
+nutThao.Size = UDim2.new(0, 80, 0, 80)
+nutThao.Position = UDim2.new(0, 20, 0, 250)
+nutThao.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+nutThao.BackgroundTransparency = 0.15
+nutThao.Text = ""
+nutThao.Visible = false
+nutThao.Parent = sg
+Instance.new("UICorner", nutThao).CornerRadius = UDim.new(0, 10)
+vien(nutThao, 3)
+keo(nutThao, function() return tt.khoaT end)
+
+local khung = Instance.new("Frame")
+khung.Size = UDim2.new(0, 296, 0, 264)
+khung.Position = UDim2.new(0.5, -148, 0.5, -132)
+khung.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+khung.BackgroundTransparency = 0.15
+khung.Visible = false
+khung.Parent = sg
+Instance.new("UICorner", khung).CornerRadius = UDim.new(0, 10)
+vien(khung, 2)
+
+local khungMenu = Instance.new("Frame")
+khungMenu.Size = UDim2.new(1, 0, 1, 0)
+khungMenu.BackgroundTransparency = 1
+khungMenu.Parent = khung
+
+local khungWL = Instance.new("Frame")
+khungWL.Size = UDim2.new(1, 0, 1, 0)
+khungWL.BackgroundTransparency = 1
+khungWL.Visible = false
+khungWL.Parent = khung
+
+local function nut3(parent, pos, sz, ten, cb)
+    local n = Instance.new("TextButton")
+    n.Size = sz or UDim2.new(0, 88, 0, 50)
+    n.Position = pos
+    n.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    n.TextColor3 = Color3.fromRGB(255, 50, 50)
+    n.Text = ten
+    n.Font = Enum.Font.GothamBold
+    n.TextSize = 11
+    n.TextWrapped = true
+    n.Parent = parent
+    Instance.new("UICorner", n).CornerRadius = UDim.new(0, 8)
+    n.MouseButton1Click:Connect(function() cb(n) end)
+    return n
+end
+local function doi(n, b)
+    n.BackgroundColor3 = b and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(0, 0, 0)
+    n.TextColor3 = b and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(255, 50, 50)
+end
+
+nut3(khungMenu, UDim2.new(0, 8, 0, 8), nil, "Vô hạn\nnăng lượng", function(n) tt.nl = not tt.nl; doi(n, tt.nl) end)
+nut3(khungMenu, UDim2.new(0, 104, 0, 8), nil, "Vô hạn\nOxygen", function(n) tt.oxy = not tt.oxy; doi(n, tt.oxy) end)
+nut3(khungMenu, UDim2.new(0, 200, 0, 8), nil, "Anti Té", function(n) tt.te = not tt.te; doi(n, tt.te) end)
+nut3(khungMenu, UDim2.new(0, 8, 0, 66), nil, "Anti Grab", function(n) tt.ag = not tt.ag; doi(n, tt.ag) end)
+nut3(khungMenu, UDim2.new(0, 104, 0, 66), nil, "Kill Aura", function(n) tt.ka = not tt.ka; doi(n, tt.ka) end)
+nut3(khungMenu, UDim2.new(0, 200, 0, 66), nil, "Bá Khí", function(n)
+    tt.bk = not tt.bk; doi(n, tt.bk)
+    if tt.bk then
+        tt.fly = false; tt.hitbox = false
+        if hitboxPart then pcall(function() hitboxPart:Destroy() end) hitboxPart = nil end
+        khoiPhucHitboxTarget()
+        cheDo = "bk"; batBV()
+        bkSt = "a"; bkTG = 0; bkGoc = 0
+        joy.Visible = false; nutLen.Visible = false; nutXuong.Visible = false
+        nutTru.Visible = true; nutCong.Visible = true
+        hJoy = Vector3.new(0,0,0); hY = 0
+    else
+        if cheDo == "bk" then cheDo = "none"; tatBV() end
+        nutTru.Visible = false; nutCong.Visible = false
+    end
+end)
+
+local function frameSo(parent, pos, ten, cbT, w)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(0, w or 184, 0, 50)
+    f.Position = pos
+    f.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    f.BackgroundTransparency = 0.15
+    f.Parent = parent
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 8)
+    local vf = Instance.new("UIStroke", f)
+    vf.Color = Color3.fromRGB(60, 60, 60)
+    vf.Thickness = 1.5
+    local nt = Instance.new("TextButton")
+    nt.Size = UDim2.new(0, 32, 1, -8)
+    nt.Position = UDim2.new(0, 4, 0, 4)
+    nt.BackgroundColor3 = Color3.fromRGB(80, 30, 30)
+    nt.TextColor3 = Color3.fromRGB(255,255,255)
+    nt.Text = "-"
+    nt.Font = Enum.Font.GothamBold
+    nt.TextSize = 18
+    nt.Parent = f
+    Instance.new("UICorner", nt).CornerRadius = UDim.new(0, 6)
+    local ng = Instance.new("TextButton")
+    ng.Size = UDim2.new(1, -76, 1, -8)
+    ng.Position = UDim2.new(0, 38, 0, 4)
+    ng.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    ng.BackgroundTransparency = 0.3
+    ng.TextColor3 = Color3.fromRGB(255, 50, 50)
+    ng.Text = ten
+    ng.Font = Enum.Font.GothamBold
+    ng.TextSize = 11
+    ng.Parent = f
+    Instance.new("UICorner", ng).CornerRadius = UDim.new(0, 6)
+    local nc = Instance.new("TextButton")
+    nc.Size = UDim2.new(0, 32, 1, -8)
+    nc.Position = UDim2.new(1, -36, 0, 4)
+    nc.BackgroundColor3 = Color3.fromRGB(30, 80, 30)
+    nc.TextColor3 = Color3.fromRGB(255,255,255)
+    nc.Text = "+"
+    nc.Font = Enum.Font.GothamBold
+    nc.TextSize = 18
+    nc.Parent = f
+    Instance.new("UICorner", nc).CornerRadius = UDim.new(0, 6)
+    ng.MouseButton1Click:Connect(function() cbT(ng) end)
+    return f, nt, ng, nc
+end
+
+local _, tT, gT, cT = frameSo(khungMenu, UDim2.new(0, 8, 0, 124), "Tăng tốc: 30", function(n)
+    tt.toc = not tt.toc
+    if tt.toc then
+        n.TextColor3 = Color3.fromRGB(0, 255, 100)
+        local h = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if h then tt.spdG = h.WalkSpeed end
+    else
+        n.TextColor3 = Color3.fromRGB(255, 50, 50)
+        local h = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if h then h.WalkSpeed = tt.spdG end
+    end
+end, 184)
+tT.MouseButton1Click:Connect(function()
+    tt.spd = math.max(16, tt.spd - 5); gT.Text = "Tăng tốc: " .. tt.spd
+end)
+cT.MouseButton1Click:Connect(function()
+    tt.spd = math.min(100, tt.spd + 5); gT.Text = "Tăng tốc: " .. tt.spd
+end)
+
+-- Hitbox button
+nut3(khungMenu, UDim2.new(0, 200, 0, 124), UDim2.new(0, 88, 0, 50), "Hitbox", function(n)
+    tt.hitbox = not tt.hitbox; doi(n, tt.hitbox)
+    if tt.hitbox then
+        taoHitbox()
+    else
+        if hitboxPart then pcall(function() hitboxPart:Destroy() end) hitboxPart = nil end
+        khoiPhucHitboxTarget()
+    end
+end)
+
+-- 2 ô nhập Size + Mờ
+local oSize = Instance.new("TextBox")
+oSize.Size = UDim2.new(0, 44, 0, 50)
+oSize.Position = UDim2.new(0, 200, 0, 182)
+oSize.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+oSize.BackgroundTransparency = 0.15
+oSize.TextColor3 = Color3.fromRGB(0, 255, 100)
+oSize.Text = "40"
+oSize.Font = Enum.Font.GothamBold
+oSize.TextSize = 13
+oSize.ClearTextOnFocus = false
+oSize.Parent = khungMenu
+Instance.new("UICorner", oSize).CornerRadius = UDim.new(0, 8)
+oSize.FocusLost:Connect(function()
+    local n = tonumber(oSize.Text)
+    if n then
+        n = math.clamp(math.floor(n), 1, 50)
+        tt.hitboxSize = n
+        oSize.Text = tostring(n)
+    else
+        oSize.Text = tostring(tt.hitboxSize)
+    end
+end)
+
+local oMo = Instance.new("TextBox")
+oMo.Size = UDim2.new(0, 44, 0, 50)
+oMo.Position = UDim2.new(0, 248, 0, 182)
+oMo.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+oMo.BackgroundTransparency = 0.15
+oMo.TextColor3 = Color3.fromRGB(255, 200, 50)
+oMo.Text = "50"
+oMo.Font = Enum.Font.GothamBold
+oMo.TextSize = 13
+oMo.ClearTextOnFocus = false
+oMo.Parent = khungMenu
+Instance.new("UICorner", oMo).CornerRadius = UDim.new(0, 8)
+oMo.FocusLost:Connect(function()
+    local n = tonumber(oMo.Text)
+    if n then
+        n = math.clamp(math.floor(n), 1, 100)
+        tt.hitboxMoTa = n
+        oMo.Text = tostring(n)
+    else
+        oMo.Text = tostring(tt.hitboxMoTa)
+    end
+end)
+
+-- Fly
+local _, tF, gF, cF = frameSo(khungMenu, UDim2.new(0, 8, 0, 182), "Fly: 30", function(n)
+    tt.fly = not tt.fly
+    if tt.fly then
+        n.TextColor3 = Color3.fromRGB(0, 255, 100)
+        tt.bk = false
+        cheDo = "none"
+        joy.Visible = true; nutLen.Visible = true; nutXuong.Visible = true
+    else
+        n.TextColor3 = Color3.fromRGB(255, 50, 50)
+        joy.Visible = false; nutLen.Visible = false; nutXuong.Visible = false
+        tatBV()
+    end
+end, 184)
+tF.MouseButton1Click:Connect(function()
+    tt.spdF = math.max(0, tt.spdF - 5); gF.Text = "Fly: " .. tt.spdF
+end)
+cF.MouseButton1Click:Connect(function()
+    tt.spdF = math.min(100, tt.spdF + 5); gF.Text = "Fly: " .. tt.spdF
+end)
+
+local nhanTT = Instance.new("TextLabel")
+nhanTT.Size = UDim2.new(0, 200, 0, 16)
+nhanTT.Position = UDim2.new(0, 8, 0, 240)
+nhanTT.BackgroundTransparency = 1
+nhanTT.TextColor3 = Color3.fromRGB(200,200,200)
+nhanTT.Text = "Cu hub 3.1 Pro"
+nhanTT.Font = Enum.Font.Gotham
+nhanTT.TextSize = 11
+nhanTT.TextXAlignment = Enum.TextXAlignment.Left
+nhanTT.Parent = khungMenu
+
+local nutKM = Instance.new("TextButton")
+nutKM.Size = UDim2.new(0, 24, 0, 22)
+nutKM.Position = UDim2.new(1, -30, 1, -28)
+nutKM.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+nutKM.TextColor3 = Color3.fromRGB(120, 120, 120)
+nutKM.Text = "M"
+nutKM.Font = Enum.Font.GothamBold
+nutKM.TextSize = 11
+nutKM.Parent = khungMenu
+Instance.new("UICorner", nutKM).CornerRadius = UDim.new(0, 4)
+nutKM.MouseButton1Click:Connect(function()
+    tt.khoaM = not tt.khoaM
+    if tt.khoaM then
+        nutKM.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
+        nutKM.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        nutKM.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+        nutKM.TextColor3 = Color3.fromRGB(120, 120, 120)
+    end
+end)
+
+local nutKT = Instance.new("TextButton")
+nutKT.Size = UDim2.new(0, 24, 0, 22)
+nutKT.Position = UDim2.new(1, -58, 1, -28)
+nutKT.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
+nutKT.TextColor3 = Color3.fromRGB(255, 180, 180)
+nutKT.Text = "T"
+nutKT.Font = Enum.Font.GothamBold
+nutKT.TextSize = 11
+nutKT.Parent = khungMenu
+Instance.new("UICorner", nutKT).CornerRadius = UDim.new(0, 4)
+
+-- Whitelist
+local tieuDeWL = Instance.new("TextLabel")
+tieuDeWL.Size = UDim2.new(1, -60, 0, 26)
+tieuDeWL.Position = UDim2.new(0, 8, 0, 8)
+tieuDeWL.BackgroundColor3 = Color3.fromRGB(60, 0, 0)
+tieuDeWL.TextColor3 = Color3.fromRGB(255, 255, 255)
+tieuDeWL.Text = "CHỌN NGƯỜI MIỄN ĐÁNH"
+tieuDeWL.Font = Enum.Font.GothamBold
+tieuDeWL.TextSize = 12
+tieuDeWL.Parent = khungWL
+Instance.new("UICorner", tieuDeWL).CornerRadius = UDim.new(0, 6)
+
+local nutThoat = Instance.new("TextButton")
+nutThoat.Size = UDim2.new(0, 44, 0, 26)
+nutThoat.Position = UDim2.new(1, -52, 0, 8)
+nutThoat.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+nutThoat.TextColor3 = Color3.fromRGB(255, 255, 255)
+nutThoat.Text = "Thoát"
+nutThoat.Font = Enum.Font.GothamBold
+nutThoat.TextSize = 11
+nutThoat.Parent = khungWL
+Instance.new("UICorner", nutThoat).CornerRadius = UDim.new(0, 6)
+
+local khungDS = Instance.new("ScrollingFrame")
+khungDS.Size = UDim2.new(1, -16, 1, -44)
+khungDS.Position = UDim2.new(0, 8, 0, 40)
+khungDS.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+khungDS.BorderSizePixel = 0
+khungDS.ScrollBarThickness = 6
+khungDS.CanvasSize = UDim2.new(0, 0, 0, 0)
+khungDS.AutomaticCanvasSize = Enum.AutomaticSize.Y
+khungDS.Parent = khungWL
+Instance.new("UICorner", khungDS).CornerRadius = UDim.new(0, 6)
+
+local dsNutWL = {}
+local function veWhitelist()
+    for _, n in ipairs(dsNutWL) do n:Destroy() end
+    dsNutWL = {}
+    local y = 4
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LP then
+            local nut = Instance.new("TextButton")
+            nut.Size = UDim2.new(1, -8, 0, 32)
+            nut.Position = UDim2.new(0, 4, 0, y)
+            nut.BackgroundColor3 = whitelist[p] and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(30, 30, 40)
+            nut.TextColor3 = Color3.fromRGB(255, 255, 255)
+            nut.Text = p.Name
+            nut.Font = Enum.Font.Gotham
+            nut.TextSize = 12
+            nut.Parent = khungDS
+            Instance.new("UICorner", nut).CornerRadius = UDim.new(0, 4)
+            nut.MouseButton1Click:Connect(function()
+                whitelist[p] = not whitelist[p]
+                if whitelist[p] then
+                    nut.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+                else
+                    nut.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+                end
+            end)
+            table.insert(dsNutWL, nut)
+            y = y + 36
+        end
+    end
+    khungDS.CanvasSize = UDim2.new(0, 0, 0, y + 8)
+end
+
+Players.PlayerAdded:Connect(function()
+    task.wait(0.5)
+    if khungWL.Visible then veWhitelist() end
+end)
+Players.PlayerRemoving:Connect(function()
+    if khungWL.Visible then task.wait(0.3); veWhitelist() end
+end)
+
+nutKT.MouseButton1Click:Connect(function()
+    khungMenu.Visible = false
+    veWhitelist()
+    khungWL.Visible = true
+end)
+
+nutThoat.MouseButton1Click:Connect(function()
+    khungWL.Visible = false
+    khungMenu.Visible = true
+end)
+
+nutThao.MouseButton1Click:Connect(function()
+    task.spawn(function()
+        for i = 1, 10 do
+            if rLatch then
+                pcall(function() rLatch:FireServer() end)
+                pcall(function() rLatch:FireServer(LP) end)
+            end
+            task.wait(0.05)
+        end
+    end)
+end)
+
+nutMo.MouseButton1Click:Connect(function()
+    khung.Visible = not khung.Visible
+end)
+
+print("[Cu hub 3.1 Pro] OK - Hitbox theo Kali")
