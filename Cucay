@@ -1,4 +1,4 @@
--- Cu hub 3.1 Pro - Hitbox theo Kali
+-- Cu hub 3.2 Pro (rút gọn)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
@@ -7,11 +7,11 @@ local LP = Players.LocalPlayer
 local Cam = workspace.CurrentCamera
 
 local tt = { nl=false, oxy=false, te=false, ag=false, ka=false, bk=false,
-    hitbox=false, toc=false, fly=false,
+    hb=false, toc=false, fly=false,
     spd=30, spdF=30, spdG=16, khoaM=false, khoaT=false,
-    hitboxSize=40, hitboxMoTa=50 }
+    hbSize=40, hbMo=50 }
 
-local whitelist = {}
+local wl = {}
 
 local rAtk, rLatch
 for _, v in ipairs(RS:GetDescendants()) do
@@ -22,84 +22,7 @@ for _, v in ipairs(RS:GetDescendants()) do
     end
 end
 
--- ====== TẠO HITBOX PART ======
-local hitboxPart = nil
-local sizeGocChar = {} -- Lưu size gốc của Capsule_Head các mục tiêu
-
-local function timFolderLeaves()
-    for _, v in ipairs(workspace:GetChildren()) do
-        if v.Name == "Leaves" then return v end
-    end
-    return workspace
-end
-
-local function taoHitbox()
-    if hitboxPart then pcall(function() hitboxPart:Destroy() end) end
-    hitboxPart = Instance.new("Part")
-    hitboxPart.Name = "Hitbox"
-    hitboxPart.Size = Vector3.new(tt.hitboxSize, tt.hitboxSize/4, tt.hitboxSize/2)
-    hitboxPart.Anchored = true
-    hitboxPart.CanCollide = false
-    hitboxPart.Material = Enum.Material.ForceField
-    hitboxPart.Color = Color3.fromRGB(255, 0, 0)
-    hitboxPart.Transparency = tt.hitboxMoTa / 100
-    hitboxPart.Parent = timFolderLeaves()
-end
-
-local function capNhatHitbox()
-    if not tt.hitbox or not hitboxPart then return end
-    local nv = LP.Character
-    local g = nv and nv:FindFirstChild("HumanoidRootPart")
-    if not g then return end
-    -- Đặt hitbox phía trước nhân vật
-    local huongNhin = g.CFrame.LookVector
-    local viTriHitbox = g.Position + huongNhin * (tt.hitboxSize/2 + 3)
-    hitboxPart.CFrame = CFrame.new(viTriHitbox)
-    hitboxPart.Size = Vector3.new(tt.hitboxSize, tt.hitboxSize/4, tt.hitboxSize/2)
-    hitboxPart.Transparency = tt.hitboxMoTa / 100
-end
-
--- Mở rộng part cơ thể mục tiêu
-local function moRongHitboxTarget(p)
-    local char = p.Character
-    if not char then return end
-    for _, obj in ipairs(char:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            local tn = string.lower(obj.Name)
-            if tn:find("capsule_head") or tn:find("head") then
-                local key = p.Name .. "_" .. obj.Name
-                if not sizeGocChar[key] then
-                    sizeGocChar[key] = obj.Size
-                end
-                pcall(function()
-                    obj.Size = Vector3.new(
-                        tt.hitboxSize/2,
-                        tt.hitboxSize/2,
-                        tt.hitboxSize/2
-                    )
-                end)
-            end
-        end
-    end
-end
-
-local function khoiPhucHitboxTarget()
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LP and p.Character then
-            for _, obj in ipairs(p.Character:GetDescendants()) do
-                if obj:IsA("BasePart") then
-                    local key = p.Name .. "_" .. obj.Name
-                    if sizeGocChar[key] then
-                        pcall(function() obj.Size = sizeGocChar[key] end)
-                    end
-                end
-            end
-        end
-    end
-    sizeGocChar = {}
-end
-
--- ====== KILL AURA ======
+-- KILL AURA
 task.spawn(function()
     while task.wait(0.2) do
         if tt.ka and rAtk then
@@ -107,10 +30,10 @@ task.spawn(function()
                 local nv = LP.Character
                 local g = nv and nv:FindFirstChild("HumanoidRootPart")
                 if not g then return end
-                local banKinh = tt.hitbox and (tt.hitboxSize + 10) or 35
-                local gan, km = nil, banKinh
+                local bk = tt.hb and (tt.hbSize + 10) or 35
+                local gan, km = nil, bk
                 for _, p in ipairs(Players:GetPlayers()) do
-                    if p ~= LP and p.Character and not whitelist[p] then
+                    if p ~= LP and p.Character and not wl[p] then
                         local m = p.Character:FindFirstChild("HumanoidRootPart")
                         local h = p.Character:FindFirstChildOfClass("Humanoid")
                         if m and h and h.Health > 0 then
@@ -152,6 +75,81 @@ task.spawn(function()
     end
 end)
 
+-- HITBOX
+local hbPart = nil
+local sizeGoc = {}
+
+local function laPartThan(n)
+    n = string.lower(n)
+    return n:find("head") or n:find("capsule_head") or n:find("neck")
+        or n:find("torso") or n:find("body") or n:find("upper")
+        or n:find("lower") or n:find("chest") or n:find("spine")
+end
+
+local function taoHB()
+    if hbPart then pcall(function() hbPart:Destroy() end) end
+    local folder = workspace
+    for _, v in ipairs(workspace:GetChildren()) do
+        if v.Name == "Leaves" then folder = v break end
+    end
+    hbPart = Instance.new("Part")
+    hbPart.Name = "Hitbox"
+    hbPart.Size = Vector3.new(tt.hbSize, tt.hbSize/4, tt.hbSize/2)
+    hbPart.Anchored = true
+    hbPart.CanCollide = false
+    hbPart.Material = Enum.Material.ForceField
+    hbPart.Color = Color3.fromRGB(255, 0, 0)
+    hbPart.Transparency = tt.hbMo / 100
+    hbPart.Parent = folder
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+        if tt.hb then
+            local nv = LP.Character
+            local g = nv and nv:FindFirstChild("HumanoidRootPart")
+            if g and hbPart then
+                local huong = g.CFrame.LookVector
+                local vt = g.Position + huong * (tt.hbSize/2 + 3)
+                hbPart.CFrame = CFrame.new(vt)
+                hbPart.Size = Vector3.new(tt.hbSize, tt.hbSize/4, tt.hbSize/2)
+                hbPart.Transparency = tt.hbMo / 100
+            end
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= LP and p.Character and not wl[p] then
+                    for _, obj in ipairs(p.Character:GetDescendants()) do
+                        if obj:IsA("BasePart") and laPartThan(obj.Name) then
+                            local key = p.Name .. "_" .. obj.Name
+                            if not sizeGoc[key] then sizeGoc[key] = obj.Size end
+                            pcall(function()
+                                obj.Size = Vector3.new(tt.hbSize/2, tt.hbSize/2, tt.hbSize/2)
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+local function phucHoi()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LP and p.Character then
+            for _, obj in ipairs(p.Character:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    local key = p.Name .. "_" .. obj.Name
+                    if sizeGoc[key] then
+                        pcall(function() obj.Size = sizeGoc[key] end)
+                    end
+                end
+            end
+        end
+    end
+    sizeGoc = {}
+end
+
+-- ATTR LOOP
 RunService.Heartbeat:Connect(function()
     pcall(function()
         local nv = LP.Character
@@ -165,20 +163,13 @@ RunService.Heartbeat:Connect(function()
         if tt.toc and not tt.fly and not tt.bk and h then
             h.WalkSpeed = tt.spd
         end
-        -- Hitbox
-        if tt.hitbox then
-            capNhatHitbox()
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= LP then moRongHitboxTarget(p) end
-            end
-        end
     end)
 end)
 
--- ====== GUI ======
+-- GUI
 local pg = LP:FindFirstChildOfClass("PlayerGui") or LP:WaitForChild("PlayerGui", 10)
 local sg = Instance.new("ScreenGui")
-sg.Name = "CuHub31"
+sg.Name = "CuHub32"
 sg.ResetOnSpawn = false
 sg.IgnoreGuiInset = true
 sg.Parent = pg
@@ -326,38 +317,38 @@ nutXuong.InputEnded:Connect(function(i)
 end)
 
 local nutTru = Instance.new("TextButton")
-nutTru.Size = UDim2.new(0, 80, 0, 80)
-nutTru.Position = UDim2.new(0, 260, 1, -200)
+nutTru.Size = UDim2.new(0, 70, 0, 70)
+nutTru.Position = UDim2.new(0, 250, 1, -190)
 nutTru.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
-nutTru.BackgroundTransparency = 0.3
 nutTru.TextColor3 = Color3.fromRGB(255,255,255)
 nutTru.Text = "<"
 nutTru.Font = Enum.Font.GothamBold
-nutTru.TextSize = 30
+nutTru.TextSize = 28
 nutTru.Visible = false
 nutTru.Parent = sg
 Instance.new("UICorner", nutTru).CornerRadius = UDim.new(1, 0)
 vien(nutTru, 2)
 
 local nutCong = Instance.new("TextButton")
-nutCong.Size = UDim2.new(0, 80, 0, 80)
-nutCong.Position = UDim2.new(0, 350, 1, -200)
+nutCong.Size = UDim2.new(0, 70, 0, 70)
+nutCong.Position = UDim2.new(0, 330, 1, -190)
 nutCong.BackgroundColor3 = Color3.fromRGB(100, 60, 60)
-nutCong.BackgroundTransparency = 0.3
 nutCong.TextColor3 = Color3.fromRGB(255,255,255)
 nutCong.Text = ">"
 nutCong.Font = Enum.Font.GothamBold
-nutCong.TextSize = 30
+nutCong.TextSize = 28
 nutCong.Visible = false
 nutCong.Parent = sg
 Instance.new("UICorner", nutCong).CornerRadius = UDim.new(1, 0)
 vien(nutCong, 2)
 
+-- Mục tiêu Bá Khí
 local mtBK = nil
+
 local function dsN()
     local d = {}
     for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LP and p.Character and not whitelist[p] then
+        if p ~= LP and p.Character and not wl[p] then
             local h = p.Character:FindFirstChildOfClass("Humanoid")
             local m = p.Character:FindFirstChild("HumanoidRootPart")
             if h and h.Health > 0 and m then table.insert(d, p) end
@@ -365,11 +356,8 @@ local function dsN()
     end
     return d
 end
-local function layMT()
-    if mtBK and mtBK.Parent and mtBK.Character and not whitelist[mtBK] then
-        local h = mtBK.Character:FindFirstChildOfClass("Humanoid")
-        if h and h.Health > 0 then return mtBK end
-    end
+
+local function timMT()
     local nv = LP.Character
     local g = nv and nv:FindFirstChild("HumanoidRootPart")
     if not g then return nil end
@@ -381,9 +369,9 @@ local function layMT()
             if kc < km then km = kc; gan = p end
         end
     end
-    mtBK = gan
     return gan
 end
+
 local function doiMT(b)
     local d = dsN()
     if #d == 0 then return end
@@ -394,10 +382,12 @@ local function doiMT(b)
     if i > #d then i = 1 end
     mtBK = d[i]
 end
+
 nutTru.MouseButton1Click:Connect(function() doiMT(-1) end)
 nutCong.MouseButton1Click:Connect(function() doiMT(1) end)
 
-local bvChung, bgChung = nil, nil
+-- BV
+local bvC, bgC = nil, nil
 local cheDo = "none"
 
 local function batBV()
@@ -406,23 +396,23 @@ local function batBV()
     local h = nv and nv:FindFirstChildOfClass("Humanoid")
     if not g or not h then return end
     h.PlatformStand = true
-    if bvChung then pcall(function() bvChung:Destroy() end) end
-    bvChung = Instance.new("BodyVelocity")
-    bvChung.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-    bvChung.P = 1250
-    bvChung.Velocity = Vector3.new(0,0,0)
-    bvChung.Parent = g
-    if bgChung then pcall(function() bgChung:Destroy() end) end
-    bgChung = Instance.new("BodyGyro")
-    bgChung.MaxTorque = Vector3.new(8999999488, 8999999488, 8999999488)
-    bgChung.P = 3000; bgChung.D = 500
-    bgChung.CFrame = g.CFrame
-    bgChung.Parent = g
+    if bvC then pcall(function() bvC:Destroy() end) end
+    bvC = Instance.new("BodyVelocity")
+    bvC.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    bvC.P = 1250
+    bvC.Velocity = Vector3.new(0,0,0)
+    bvC.Parent = g
+    if bgC then pcall(function() bgC:Destroy() end) end
+    bgC = Instance.new("BodyGyro")
+    bgC.MaxTorque = Vector3.new(8999999488, 8999999488, 8999999488)
+    bgC.P = 3000; bgC.D = 500
+    bgC.CFrame = g.CFrame
+    bgC.Parent = g
 end
 
 local function tatBV()
-    if bvChung then pcall(function() bvChung:Destroy() end) bvChung = nil end
-    if bgChung then pcall(function() bgChung:Destroy() end) bgChung = nil end
+    if bvC then pcall(function() bvC:Destroy() end) bvC = nil end
+    if bgC then pcall(function() bgC:Destroy() end) bgC = nil end
     local nv = LP.Character
     if nv then
         local h = nv:FindFirstChildOfClass("Humanoid")
@@ -438,16 +428,18 @@ RunService.Heartbeat:Connect(function(dt)
         local g = nv and nv:FindFirstChild("HumanoidRootPart")
         if not g then return end
         if cheDo == "none" then return end
-        if not bvChung or not bvChung.Parent then batBV() end
-        if not bvChung then return end
+        if not bvC or not bvC.Parent then batBV() end
+        if not bvC then return end
         local velAuto = Vector3.new(0, 0, 0)
         if cheDo == "bk" then
-            local mt = layMT()
-            if not mt or not mt.Character then
-                bvChung.Velocity = Vector3.new(0, 0, 0)
+            if not mtBK or not mtBK.Parent or wl[mtBK] then
+                mtBK = timMT()
+            end
+            if not mtBK or not mtBK.Character then
+                bvC.Velocity = Vector3.new(0, 0, 0)
                 return
             end
-            local mh = mt.Character:FindFirstChild("HumanoidRootPart")
+            local mh = mtBK.Character:FindFirstChild("HumanoidRootPart")
             if not mh then return end
             if bkSt == "a" then
                 local vd = mh.Position + Vector3.new(0,20,0)
@@ -477,19 +469,19 @@ RunService.Heartbeat:Connect(function(dt)
                 if bkTG >= 0.2 then bkSt = "a"; bkTG = 0 end
             end
         end
-        local velUser = Vector3.new(0, 0, 0)
+        local velU = Vector3.new(0, 0, 0)
         if hJoy.Magnitude > 0.05 then
             local hC = Cam.CFrame.LookVector
             local hP = Cam.CFrame.RightVector
             local hh = hC * -hJoy.Z + hP * hJoy.X
             hh = Vector3.new(hh.X, 0, hh.Z)
-            if hh.Magnitude > 0.1 then velUser = hh.Unit * tt.spdF end
+            if hh.Magnitude > 0.1 then velU = hh.Unit * tt.spdF end
         end
         local velY = Vector3.new(0, hY * tt.spdF, 0)
-        bvChung.Velocity = velAuto + velUser + velY
-        if bgChung and bgChung.Parent then
+        bvC.Velocity = velAuto + velU + velY
+        if bgC and bgC.Parent then
             local hC = Cam.CFrame.LookVector
-            bgChung.CFrame = CFrame.lookAt(g.Position, g.Position + Vector3.new(hC.X, 0, hC.Z))
+            bgC.CFrame = CFrame.lookAt(g.Position, g.Position + Vector3.new(hC.X, 0, hC.Z))
         end
     end)
 end)
@@ -500,8 +492,8 @@ RunService.Heartbeat:Connect(function(dt)
         local nv = LP.Character
         local g = nv and nv:FindFirstChild("HumanoidRootPart")
         if not g then return end
-        if not bvChung or not bvChung.Parent then batBV() end
-        if not bvChung then return end
+        if not bvC or not bvC.Parent then batBV() end
+        if not bvC then return end
         local hN = Vector3.new(0,0,0)
         if hJoy.Magnitude > 0.05 then
             local hC = Cam.CFrame.LookVector
@@ -512,10 +504,10 @@ RunService.Heartbeat:Connect(function(dt)
         end
         local hD = Vector3.new(0, hY, 0)
         local hT = hN + hD
-        bvChung.Velocity = hT.Magnitude > 0.05 and hT.Unit * tt.spdF or Vector3.new(0,0,0)
-        if bgChung and bgChung.Parent then
+        bvC.Velocity = hT.Magnitude > 0.05 and hT.Unit * tt.spdF or Vector3.new(0,0,0)
+        if bgC and bgC.Parent then
             local hC = Cam.CFrame.LookVector
-            bgChung.CFrame = CFrame.lookAt(g.Position, g.Position + Vector3.new(hC.X, 0, hC.Z))
+            bgC.CFrame = CFrame.lookAt(g.Position, g.Position + Vector3.new(hC.X, 0, hC.Z))
         end
     end)
 end)
@@ -527,25 +519,13 @@ nutMo.Position = UDim2.new(0, 20, 0, 200)
 nutMo.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 nutMo.BackgroundTransparency = 0.15
 nutMo.TextColor3 = Color3.fromRGB(255, 255, 255)
-nutMo.Text = "Cu hub 3.1 Pro"
+nutMo.Text = "Cu hub 3.2"
 nutMo.Font = Enum.Font.GothamBold
 nutMo.TextSize = 12
 nutMo.Parent = sg
 Instance.new("UICorner", nutMo).CornerRadius = UDim.new(0, 8)
 vien(nutMo, 2)
 keo(nutMo, function() return tt.khoaM end)
-
-local nutThao = Instance.new("TextButton")
-nutThao.Size = UDim2.new(0, 80, 0, 80)
-nutThao.Position = UDim2.new(0, 20, 0, 250)
-nutThao.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-nutThao.BackgroundTransparency = 0.15
-nutThao.Text = ""
-nutThao.Visible = false
-nutThao.Parent = sg
-Instance.new("UICorner", nutThao).CornerRadius = UDim.new(0, 10)
-vien(nutThao, 3)
-keo(nutThao, function() return tt.khoaT end)
 
 local khung = Instance.new("Frame")
 khung.Size = UDim2.new(0, 296, 0, 264)
@@ -596,9 +576,10 @@ nut3(khungMenu, UDim2.new(0, 104, 0, 66), nil, "Kill Aura", function(n) tt.ka = 
 nut3(khungMenu, UDim2.new(0, 200, 0, 66), nil, "Bá Khí", function(n)
     tt.bk = not tt.bk; doi(n, tt.bk)
     if tt.bk then
-        tt.fly = false; tt.hitbox = false
-        if hitboxPart then pcall(function() hitboxPart:Destroy() end) hitboxPart = nil end
-        khoiPhucHitboxTarget()
+        tt.fly = false; tt.hb = false
+        if hbPart then pcall(function() hbPart:Destroy() end) hbPart = nil end
+        phucHoi()
+        mtBK = timMT()
         cheDo = "bk"; batBV()
         bkSt = "a"; bkTG = 0; bkGoc = 0
         joy.Visible = false; nutLen.Visible = false; nutXuong.Visible = false
@@ -675,18 +656,15 @@ cT.MouseButton1Click:Connect(function()
     tt.spd = math.min(100, tt.spd + 5); gT.Text = "Tăng tốc: " .. tt.spd
 end)
 
--- Hitbox button
 nut3(khungMenu, UDim2.new(0, 200, 0, 124), UDim2.new(0, 88, 0, 50), "Hitbox", function(n)
-    tt.hitbox = not tt.hitbox; doi(n, tt.hitbox)
-    if tt.hitbox then
-        taoHitbox()
+    tt.hb = not tt.hb; doi(n, tt.hb)
+    if tt.hb then taoHB()
     else
-        if hitboxPart then pcall(function() hitboxPart:Destroy() end) hitboxPart = nil end
-        khoiPhucHitboxTarget()
+        if hbPart then pcall(function() hbPart:Destroy() end) hbPart = nil end
+        phucHoi()
     end
 end)
 
--- 2 ô nhập Size + Mờ
 local oSize = Instance.new("TextBox")
 oSize.Size = UDim2.new(0, 44, 0, 50)
 oSize.Position = UDim2.new(0, 200, 0, 182)
@@ -703,11 +681,9 @@ oSize.FocusLost:Connect(function()
     local n = tonumber(oSize.Text)
     if n then
         n = math.clamp(math.floor(n), 1, 50)
-        tt.hitboxSize = n
+        tt.hbSize = n
         oSize.Text = tostring(n)
-    else
-        oSize.Text = tostring(tt.hitboxSize)
-    end
+    else oSize.Text = tostring(tt.hbSize) end
 end)
 
 local oMo = Instance.new("TextBox")
@@ -726,20 +702,16 @@ oMo.FocusLost:Connect(function()
     local n = tonumber(oMo.Text)
     if n then
         n = math.clamp(math.floor(n), 1, 100)
-        tt.hitboxMoTa = n
+        tt.hbMo = n
         oMo.Text = tostring(n)
-    else
-        oMo.Text = tostring(tt.hitboxMoTa)
-    end
+    else oMo.Text = tostring(tt.hbMo) end
 end)
 
--- Fly
 local _, tF, gF, cF = frameSo(khungMenu, UDim2.new(0, 8, 0, 182), "Fly: 30", function(n)
     tt.fly = not tt.fly
     if tt.fly then
         n.TextColor3 = Color3.fromRGB(0, 255, 100)
-        tt.bk = false
-        cheDo = "none"
+        tt.bk = false; cheDo = "none"
         joy.Visible = true; nutLen.Visible = true; nutXuong.Visible = true
     else
         n.TextColor3 = Color3.fromRGB(255, 50, 50)
@@ -759,7 +731,7 @@ nhanTT.Size = UDim2.new(0, 200, 0, 16)
 nhanTT.Position = UDim2.new(0, 8, 0, 240)
 nhanTT.BackgroundTransparency = 1
 nhanTT.TextColor3 = Color3.fromRGB(200,200,200)
-nhanTT.Text = "Cu hub 3.1 Pro"
+nhanTT.Text = "Cu hub 3.2"
 nhanTT.Font = Enum.Font.Gotham
 nhanTT.TextSize = 11
 nhanTT.TextXAlignment = Enum.TextXAlignment.Left
@@ -797,13 +769,13 @@ nutKT.TextSize = 11
 nutKT.Parent = khungMenu
 Instance.new("UICorner", nutKT).CornerRadius = UDim.new(0, 4)
 
--- Whitelist
+-- Whitelist view
 local tieuDeWL = Instance.new("TextLabel")
 tieuDeWL.Size = UDim2.new(1, -60, 0, 26)
 tieuDeWL.Position = UDim2.new(0, 8, 0, 8)
 tieuDeWL.BackgroundColor3 = Color3.fromRGB(60, 0, 0)
 tieuDeWL.TextColor3 = Color3.fromRGB(255, 255, 255)
-tieuDeWL.Text = "CHỌN NGƯỜI MIỄN ĐÁNH"
+tieuDeWL.Text = "MIỄN ĐÁNH"
 tieuDeWL.Font = Enum.Font.GothamBold
 tieuDeWL.TextSize = 12
 tieuDeWL.Parent = khungWL
@@ -832,7 +804,7 @@ khungDS.Parent = khungWL
 Instance.new("UICorner", khungDS).CornerRadius = UDim.new(0, 6)
 
 local dsNutWL = {}
-local function veWhitelist()
+local function veWL()
     for _, n in ipairs(dsNutWL) do n:Destroy() end
     dsNutWL = {}
     local y = 4
@@ -841,7 +813,7 @@ local function veWhitelist()
             local nut = Instance.new("TextButton")
             nut.Size = UDim2.new(1, -8, 0, 32)
             nut.Position = UDim2.new(0, 4, 0, y)
-            nut.BackgroundColor3 = whitelist[p] and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(30, 30, 40)
+            nut.BackgroundColor3 = wl[p] and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(30, 30, 40)
             nut.TextColor3 = Color3.fromRGB(255, 255, 255)
             nut.Text = p.Name
             nut.Font = Enum.Font.Gotham
@@ -849,9 +821,10 @@ local function veWhitelist()
             nut.Parent = khungDS
             Instance.new("UICorner", nut).CornerRadius = UDim.new(0, 4)
             nut.MouseButton1Click:Connect(function()
-                whitelist[p] = not whitelist[p]
-                if whitelist[p] then
+                wl[p] = not wl[p]
+                if wl[p] then
                     nut.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+                    if mtBK == p then mtBK = nil end
                 else
                     nut.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
                 end
@@ -863,17 +836,9 @@ local function veWhitelist()
     khungDS.CanvasSize = UDim2.new(0, 0, 0, y + 8)
 end
 
-Players.PlayerAdded:Connect(function()
-    task.wait(0.5)
-    if khungWL.Visible then veWhitelist() end
-end)
-Players.PlayerRemoving:Connect(function()
-    if khungWL.Visible then task.wait(0.3); veWhitelist() end
-end)
-
 nutKT.MouseButton1Click:Connect(function()
     khungMenu.Visible = false
-    veWhitelist()
+    veWL()
     khungWL.Visible = true
 end)
 
@@ -882,20 +847,8 @@ nutThoat.MouseButton1Click:Connect(function()
     khungMenu.Visible = true
 end)
 
-nutThao.MouseButton1Click:Connect(function()
-    task.spawn(function()
-        for i = 1, 10 do
-            if rLatch then
-                pcall(function() rLatch:FireServer() end)
-                pcall(function() rLatch:FireServer(LP) end)
-            end
-            task.wait(0.05)
-        end
-    end)
-end)
-
 nutMo.MouseButton1Click:Connect(function()
     khung.Visible = not khung.Visible
 end)
 
-print("[Cu hub 3.1 Pro] OK - Hitbox theo Kali")
+print("[Cu hub 3.2 Pro] OK")
